@@ -62,8 +62,8 @@ export default function CalendrierGoogleConnect({ onConnected, onDisconnected, c
       )}
       <span style={{ fontSize: '12px', color: 'var(--text3)' }}>
         {connected
-          ? 'Événements du mois affiché chargés depuis votre compte Google.'
-          : 'Sans connexion, le calendrier utilise l’API RH ou les données de démo.'}
+          ? 'Événements du mois : tous vos agendas Google (avec pagination API).'
+          : 'Cliquez pour charger vos vrais événements Google. Sans connexion : API RH ou démo.'}
       </span>
     </div>
   )

@@ -97,7 +97,8 @@ export default function Calendrier() {
       setLoadError(null)
       try {
         if (token) {
-          const calId = import.meta.env.VITE_GOOGLE_CALENDAR_ID || 'primary'
+          /* Sans VITE_GOOGLE_CALENDAR_ID (ou valeur `all`) → tous les agendas Google listés. Sinon → ID précis (ex. primary). */
+          const calId = import.meta.env.VITE_GOOGLE_CALENDAR_ID
           const list = await fetchGoogleCalendarEvents(token, range.timeMin, range.timeMax, calId)
           if (!cancelled) setMeetings(list)
         } else {
