@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { login as loginAPI, API_BASE_URL } from '../../services/api'
+import { AuroraBackdrop, StaggerReveal, StaggerItem } from '../../components/react-bits'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -48,13 +49,11 @@ export default function Login() {
       padding: '20px',
       position: 'relative', overflow: 'hidden',
     }}>
-      {/* Background ambient lights */}
-      <div style={{ position: 'absolute', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(32,178,170,0.12) 0%, transparent 70%)', top: '-100px', left: '-100px', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,188,212,0.08) 0%, transparent 70%)', bottom: '-80px', right: '-80px', pointerEvents: 'none' }} />
+      <AuroraBackdrop />
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '400px', animation: 'fadeIn 0.5s ease' }}>
+      <StaggerReveal style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '400px' }}>
 
-        {/* Logo */}
+        <StaggerItem>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{
             width: '64px', height: '64px', borderRadius: '18px',
@@ -67,8 +66,9 @@ export default function Login() {
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: '800', fontSize: '28px', color: 'var(--text)', letterSpacing: '-0.5px' }}>AVA Management</div>
           <div style={{ fontSize: '14px', color: 'var(--text3)', marginTop: '6px' }}>Sign in to your workspace</div>
         </div>
+        </StaggerItem>
 
-        {/* Card */}
+        <StaggerItem>
         <div style={{
           background: 'var(--card)',
           border: '1px solid var(--border2)',
@@ -178,12 +178,14 @@ export default function Login() {
             </button>
           </form>
         </div>
+        </StaggerItem>
 
-        {/* Footer */}
+        <StaggerItem>
         <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px', color: 'var(--text3)' }}>
           AVA Management · Powered by AI
         </div>
-      </div>
+        </StaggerItem>
+      </StaggerReveal>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { motion } from 'motion/react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 import Login from './pages/auth/Login'
@@ -18,9 +19,26 @@ function ProtectedRoute({ children, requiredRole }) {
   const { user, loading } = useAuth()
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-      <div style={{ fontFamily: 'var(--font-display)', color: 'var(--text3)', fontSize: '14px', letterSpacing: '0.05em' }}>
-        Loading...
-      </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        style={{ fontFamily: 'var(--font-display)', color: 'var(--text3)', fontSize: '14px', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '10px' }}
+      >
+        <motion.span
+          aria-hidden
+          animate={{ opacity: [0.35, 1, 0.35] }}
+          transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: 'var(--cyan)',
+            boxShadow: '0 0 12px var(--cyan)',
+          }}
+        />
+        Loading…
+      </motion.div>
     </div>
   )
   if (!user) return <Navigate to="/login" replace />

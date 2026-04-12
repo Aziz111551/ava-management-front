@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import NavIcon from './NavIcon'
+import { AnimatedPage } from '../react-bits'
 
 export default function Layout({ navItems, pageTitle, children }) {
   const { user, logout } = useAuth()
@@ -162,10 +163,8 @@ export default function Layout({ navItems, pageTitle, children }) {
           </div>
         </div>
 
-        {/* Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '28px' }} className="fade-in">
-          {children}
-        </div>
+        {/* Content — transitions type React Bits (Motion) */}
+        <AnimatedPage>{children}</AnimatedPage>
       </main>
     </div>
   )
