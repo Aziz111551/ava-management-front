@@ -1,0 +1,16 @@
+# Déploiement lorsque le dépôt Git est le dossier parent (ex. « Multiple files »).
+# Avec base = "worksphere", « publish » est relatif à CE dossier (pas worksphere/dist depuis la racine).
+
+[build]
+  base = "worksphere"
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  VITE_API_URL = "https://backendagentai-production.up.railway.app"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

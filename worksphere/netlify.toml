@@ -1,0 +1,15 @@
+# Déploiement Git : le build Netlify reçoit VITE_API_URL ici (évite login 404 sans API).
+# Drop manuel : fais quand même npm run build en local avec le même .env puis envoie dist/.
+
+[build]
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  VITE_API_URL = "https://backendagentai-production.up.railway.app"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
