@@ -79,10 +79,14 @@ export default function Login() {
         }}>
           {error && (
             <div style={{
+              display: 'flex', gap: '10px', alignItems: 'flex-start',
               background: 'var(--red-bg)', border: '1px solid rgba(255,82,82,0.2)',
               borderRadius: 'var(--radius-sm)', padding: '12px 14px',
-              color: 'var(--red)', fontSize: '13px', marginBottom: '20px',
-            }}>{error}</div>
+              color: 'var(--red)', fontSize: '13px', marginBottom: '20px', lineHeight: 1.45,
+            }}>
+              <i className="fa-solid fa-triangle-exclamation" style={{ marginTop: '2px', flexShrink: 0 }} aria-hidden />
+              <span>{error}</span>
+            </div>
           )}
 
           <form onSubmit={handleSubmit}>
@@ -90,48 +94,63 @@ export default function Login() {
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: 'var(--text3)', marginBottom: '8px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 Email address
               </label>
-              <input
-                type="email" value={email} required
-                onChange={e => setEmail(e.target.value)}
-                placeholder="vous@company.com"
-                style={{
-                  width: '100%', padding: '12px 16px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--border2)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text)', fontSize: '14px', outline: 'none',
-                  transition: 'border-color 0.2s',
-                }}
-                onFocus={e => e.target.style.borderColor = 'var(--cyan)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border2)'}
-              />
+              <div style={{ position: 'relative' }}>
+                <i className="fa-regular fa-envelope" aria-hidden style={{
+                  position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
+                  fontSize: '14px', color: 'var(--text3)', pointerEvents: 'none',
+                }} />
+                <input
+                  type="email" value={email} required
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="vous@company.com"
+                  autoComplete="email"
+                  style={{
+                    width: '100%', padding: '12px 16px 12px 42px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid var(--border2)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text)', fontSize: '14px', outline: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = 'var(--cyan)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--border2)'}
+                />
+              </div>
             </div>
 
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: 'var(--text3)', marginBottom: '8px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 Password
               </label>
-              <input
-                type="password" value={password} required
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                style={{
-                  width: '100%', padding: '12px 16px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--border2)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text)', fontSize: '14px', outline: 'none',
-                  transition: 'border-color 0.2s',
-                }}
-                onFocus={e => e.target.style.borderColor = 'var(--cyan)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border2)'}
-              />
+              <div style={{ position: 'relative' }}>
+                <i className="fa-solid fa-lock" aria-hidden style={{
+                  position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
+                  fontSize: '13px', color: 'var(--text3)', pointerEvents: 'none',
+                }} />
+                <input
+                  type="password" value={password} required
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  style={{
+                    width: '100%', padding: '12px 16px 12px 42px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid var(--border2)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text)', fontSize: '14px', outline: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = 'var(--cyan)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--border2)'}
+                />
+              </div>
             </div>
 
             <button
               type="submit" disabled={loading}
               style={{
                 width: '100%', padding: '13px',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                 background: 'var(--grad-cyan)',
                 border: 'none', borderRadius: 'var(--radius-sm)',
                 color: '#fff', fontFamily: 'var(--font-display)',
@@ -142,10 +161,20 @@ export default function Login() {
                 transition: 'opacity 0.2s, transform 0.1s',
                 letterSpacing: '0.02em',
               }}
-              onMouseEnter={e => !loading && (e.target.style.transform = 'translateY(-1px)')}
-              onMouseLeave={e => (e.target.style.transform = 'translateY(0)')}
+              onMouseEnter={e => !loading && (e.currentTarget.style.transform = 'translateY(-1px)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
             >
-              {loading ? 'Signing in...' : 'Sign in →'}
+              {loading ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" aria-hidden />
+                  Signing in…
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <i className="fa-solid fa-arrow-right-to-bracket" aria-hidden />
+                </>
+              )}
             </button>
           </form>
         </div>

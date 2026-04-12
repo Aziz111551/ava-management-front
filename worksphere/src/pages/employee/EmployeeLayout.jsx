@@ -5,16 +5,16 @@ const navItems = [
   {
     label: 'WORK',
     items: [
-      { path: '/employee/dashboard', icon: '⚡', label: 'Dashboard' },
-      { path: '/employee/projets',   icon: '📁', label: 'My Projects' },
-      { path: '/employee/taches',    icon: '✅', label: 'Trello Tasks' },
+      { path: '/employee/dashboard', icon: 'fa-solid fa-chart-line', label: 'Dashboard' },
+      { path: '/employee/projets',   icon: 'fa-solid fa-folder-open', label: 'My Projects' },
+      { path: '/employee/taches',    icon: 'fa-solid fa-list-check', label: 'Trello Tasks' },
     ],
   },
   {
     label: 'HR',
     items: [
-      { path: '/employee/conges',    icon: '🌴', label: 'Leave Request' },
-      { path: '/employee/maladie',   icon: '🏥', label: 'Sick Leave' },
+      { path: '/employee/conges',    icon: 'fa-solid fa-umbrella-beach', label: 'Leave Request' },
+      { path: '/employee/maladie',   icon: 'fa-solid fa-briefcase-medical', label: 'Sick Leave' },
     ],
   },
 ]

@@ -79,6 +79,17 @@ body::before {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
+/* Font Awesome — lisibilité sur fond sombre */
+.fa-fw.app-fa-muted { color: var(--text3); }
+
+/* Focus visible cohérent (accessibilité) */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
 input, select, textarea { font-family: var(--font-body); }
 button { font-family: var(--font-body); cursor: pointer; }
 a { text-decoration: none; color: inherit; }

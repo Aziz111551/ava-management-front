@@ -108,7 +108,10 @@ export function Candidats() {
         <div style={{ fontSize: '13px', color: 'var(--red)', marginBottom: '12px' }}>{error}</div>
       )}
       {loading ? (
-        <div style={{ fontSize: '13px', color: 'var(--text3)' }}>Chargement des candidats…</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text3)' }}>
+          <i className="fa-solid fa-spinner fa-spin" aria-hidden />
+          Chargement des candidats…
+        </div>
       ) : (
         <Table
           columns={[
@@ -132,12 +135,21 @@ export function Candidats() {
               return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('en-US')
             } },
             { key: 'notes', label: 'Notes', width: '1.5fr', render: v => <span style={{ fontSize: '12px', color: 'var(--text2)' }}>{v}</span> },
-            { key: 'cv', label: 'CV', width: '70px', render: (_, row) => {
+            { key: 'cv', label: 'CV', width: '88px', render: (_, row) => {
               const href = row.cv && row.cv !== '#' ? row.cv : null
+              const cvBtn = (
+                <>
+                  <i className="fa-regular fa-file-pdf" aria-hidden />
+                  PDF
+                </>
+              )
               return href ? (
-                <Btn small variant="ghost" onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}>CV ↗</Btn>
+                <Btn small variant="ghost" onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}>
+                  {cvBtn}
+                  <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: '10px', opacity: 0.85 }} aria-hidden />
+                </Btn>
               ) : (
-                <Btn small variant="ghost" disabled>CV ↗</Btn>
+                <Btn small variant="ghost" disabled>{cvBtn}</Btn>
               )
             } },
           ]}

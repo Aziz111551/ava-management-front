@@ -32,7 +32,12 @@ export function MesProjets() {
         <StatCard label="Total projects" value={projects.length} color="var(--blue)" />
       </Grid>
 
-      <SectionTitle action={<Btn onClick={() => setModal(true)}>+ New project</Btn>}>
+      <SectionTitle action={
+        <Btn onClick={() => setModal(true)}>
+          <i className="fa-solid fa-plus" aria-hidden />
+          New project
+        </Btn>
+      }>
         My projects
       </SectionTitle>
 
@@ -64,8 +69,14 @@ export function MesProjets() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text3)' }}>
-              <span>👥 {p.team} members</span>
-              <span>🗓 {new Date(p.deadline).toLocaleDateString('en-US')}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <i className="fa-solid fa-users" aria-hidden />
+                {p.team} members
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <i className="fa-regular fa-calendar" aria-hidden />
+                {new Date(p.deadline).toLocaleDateString('en-US')}
+              </span>
             </div>
           </div>
         ))}
@@ -123,7 +134,11 @@ export function TachesTrello() {
             </button>
           ))}
         </div>
-        <Btn variant="ghost" onClick={() => window.open('https://trello.com', '_blank')}>Open Trello ↗</Btn>
+        <Btn variant="ghost" onClick={() => window.open('https://trello.com', '_blank')}>
+          <i className="fa-brands fa-trello" aria-hidden />
+          Open Trello
+          <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: '10px', opacity: 0.85 }} aria-hidden />
+        </Btn>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>

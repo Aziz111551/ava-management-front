@@ -187,44 +187,107 @@ export default function Calendrier() {
         <div
           style={{
             marginBottom: '12px',
-            padding: '10px 14px',
+            padding: '12px 16px',
             borderRadius: 'var(--radius)',
             background: 'var(--amber-bg)',
+            border: '1px solid rgba(255,179,0,0.25)',
             color: 'var(--amber)',
             fontSize: '13px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
           }}
         >
-          {loadError}
+          <i className="fa-solid fa-triangle-exclamation" style={{ marginTop: '2px', flexShrink: 0 }} aria-hidden />
+          <span>{loadError}</span>
         </div>
       )}
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '24px' }}>
         {[
-          { label: 'This month', value: thisMonthCount, color: 'var(--cyan2)' },
-          { label: 'This week', value: thisWeekCount, color: 'var(--blue)' },
-          { label: 'Interviews', value: meetings.filter((m) => m.type === 'interview').length, color: 'var(--green)' },
-          { label: 'All-hands', value: meetings.filter((m) => m.type === 'company').length, color: 'var(--amber)' },
+          { label: 'This month', value: thisMonthCount, color: 'var(--cyan2)', icon: 'fa-regular fa-calendar-days' },
+          { label: 'This week', value: thisWeekCount, color: 'var(--blue)', icon: 'fa-solid fa-calendar-week' },
+          { label: 'Interviews', value: meetings.filter((m) => m.type === 'interview').length, color: 'var(--green)', icon: 'fa-solid fa-user-tie' },
+          { label: 'All-hands', value: meetings.filter((m) => m.type === 'company').length, color: 'var(--amber)', icon: 'fa-solid fa-users-viewfinder' },
         ].map((s) => (
-          <div key={s.label} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '4px' }}>{s.label}</div>
-            <div style={{ fontSize: '24px', fontWeight: '700', fontFamily: 'var(--font-display)', color: s.color }}>{s.value}</div>
+          <div
+            key={s.label}
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border2)',
+              borderRadius: 'var(--radius)',
+              padding: '16px 18px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '14px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+            }}
+          >
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <i className={s.icon} style={{ fontSize: '17px', color: s.color }} aria-hidden />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '6px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ fontSize: '26px', fontWeight: '700', fontFamily: 'var(--font-display)', color: s.color, lineHeight: 1.1 }}>{s.value}</div>
+            </div>
           </div>
         ))}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
         {/* Calendar */}
-        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', position: 'relative' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)', padding: '22px', position: 'relative', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
           {loading && (
-            <div style={{ position: 'absolute', top: '12px', right: '16px', fontSize: '12px', color: 'var(--text3)' }}>
-              Chargement…
+            <div style={{ position: 'absolute', top: '14px', right: '18px', fontSize: '12px', color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className="fa-solid fa-spinner fa-spin" aria-hidden />
+              <span style={{ fontWeight: '500' }}>Chargement…</span>
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <button type="button" onClick={prev} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text2)', padding: '6px 12px', cursor: 'pointer' }}>‹</button>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: '600', fontSize: '16px', color: 'var(--text)' }}>{MONTHS[month]} {year}</span>
-            <button type="button" onClick={next} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text2)', padding: '6px 12px', cursor: 'pointer' }}>›</button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+            <button
+              type="button"
+              onClick={prev}
+              aria-label="Mois précédent"
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '40px', height: '40px',
+                background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-sm)',
+                color: 'var(--text2)', cursor: 'pointer', transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--cyan)'; e.currentTarget.style.color = 'var(--cyan2)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)' }}
+            >
+              <i className="fa-solid fa-chevron-left" aria-hidden />
+            </button>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: '700', fontSize: '17px', color: 'var(--text)', letterSpacing: '-0.3px' }}>{MONTHS[month]} {year}</span>
+            <button
+              type="button"
+              onClick={next}
+              aria-label="Mois suivant"
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '40px', height: '40px',
+                background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-sm)',
+                color: 'var(--text2)', cursor: 'pointer', transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--cyan)'; e.currentTarget.style.color = 'var(--cyan2)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)' }}
+            >
+              <i className="fa-solid fa-chevron-right" aria-hidden />
+            </button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '8px' }}>
             {DAYS.map((d) => <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '600', color: 'var(--text3)', padding: '4px', letterSpacing: '0.03em' }}>{d}</div>)}
@@ -333,7 +396,10 @@ export default function Calendrier() {
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
               >
                 <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text)', marginBottom: '6px' }}>{m.title}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px' }}>🕐 {m.time} · {m.attendees} participant{m.attendees > 1 ? 's' : ''}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="fa-regular fa-clock" style={{ fontSize: '11px', opacity: 0.85 }} aria-hidden />
+                  <span>{m.time} · {m.attendees} participant{m.attendees > 1 ? 's' : ''}</span>
+                </div>
                 <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: c.bg, color: c.color }}>{m.type}</span>
                 <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px' }}>Cliquer pour les détails</div>
               </div>
@@ -441,15 +507,21 @@ export default function Calendrier() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '4px' }}>
               {meetingDetail.htmlLink ? (
                 <Btn small variant="primary" onClick={() => window.open(meetingDetail.htmlLink, '_blank', 'noopener,noreferrer')}>
-                  Ouvrir dans Google Calendar ↗
+                  <i className="fa-brands fa-google" style={{ marginRight: '6px' }} aria-hidden />
+                  Google Calendar
+                  <i className="fa-solid fa-arrow-up-right-from-square" style={{ marginLeft: '8px', fontSize: '11px', opacity: 0.9 }} aria-hidden />
                 </Btn>
               ) : null}
               {meetingDetail.hangoutLink ? (
                 <Btn small variant="ghost" onClick={() => window.open(meetingDetail.hangoutLink, '_blank', 'noopener,noreferrer')}>
-                  Lien visio ↗
+                  <i className="fa-solid fa-video" style={{ marginRight: '6px' }} aria-hidden />
+                  Visioconférence
                 </Btn>
               ) : null}
-              <Btn small variant="ghost" onClick={() => setMeetingDetail(null)}>Fermer</Btn>
+              <Btn small variant="ghost" onClick={() => setMeetingDetail(null)}>
+                <i className="fa-solid fa-xmark" style={{ marginRight: '6px' }} aria-hidden />
+                Fermer
+              </Btn>
             </div>
           </div>
         )}

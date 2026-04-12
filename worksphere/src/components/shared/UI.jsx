@@ -96,8 +96,8 @@ export function FeatureCard({ title, description, gradient, icon, onClick }) {
       <div style={{
         width: '48px', height: '48px', borderRadius: '14px',
         background: gradient, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', fontSize: '22px', flexShrink: 0,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+        justifyContent: 'center', fontSize: '20px', flexShrink: 0,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3)', color: '#fff',
       }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: '700', color: 'var(--text)', marginBottom: '2px' }}>{title}</div>
@@ -106,8 +106,10 @@ export function FeatureCard({ title, description, gradient, icon, onClick }) {
       <div style={{
         width: '34px', height: '34px', borderRadius: '50%',
         background: gradient, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', fontSize: '14px', color: '#fff', flexShrink: 0,
-      }}>›</div>
+        justifyContent: 'center', fontSize: '12px', color: '#fff', flexShrink: 0,
+      }} aria-hidden>
+        <i className="fa-solid fa-chevron-right" />
+      </div>
     </div>
   )
 }

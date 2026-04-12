@@ -5,22 +5,22 @@ const navItems = [
   {
     label: 'MAIN',
     items: [
-      { path: '/rh/calendrier',   icon: '📅', label: 'Calendar' },
-      { path: '/rh/reclamations', icon: '📋', label: 'Complaints' },
-      { path: '/rh/conges',       icon: '🌴', label: 'Leave Management' },
+      { path: '/rh/calendrier',   icon: 'fa-solid fa-calendar-days', label: 'Calendar' },
+      { path: '/rh/reclamations', icon: 'fa-solid fa-clipboard-list', label: 'Complaints' },
+      { path: '/rh/conges',       icon: 'fa-solid fa-plane-departure', label: 'Leave Management' },
     ],
   },
   {
     label: 'RECRUITMENT',
     items: [
-      { path: '/rh/candidats',    icon: '👥', label: 'Phase 1 Candidates' },
+      { path: '/rh/candidats',    icon: 'fa-solid fa-user-group', label: 'Phase 1 Candidates' },
     ],
   },
   {
     label: 'WORKFORCE',
     items: [
-      { path: '/rh/maladies',     icon: '🏥', label: 'Sick Leave' },
-      { path: '/rh/employes',     icon: '🧑‍💼', label: 'Employees' },
+      { path: '/rh/maladies',     icon: 'fa-solid fa-notes-medical', label: 'Sick Leave' },
+      { path: '/rh/employes',     icon: 'fa-solid fa-users', label: 'Employees' },
     ],
   },
 ]

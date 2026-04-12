@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import NavIcon from './NavIcon'
 
 export default function Layout({ navItems, pageTitle, children }) {
   const { user, logout } = useAuth()
@@ -16,12 +17,13 @@ export default function Layout({ navItems, pageTitle, children }) {
 
       {/* SIDEBAR */}
       <aside style={{
-        width: '240px', flexShrink: 0,
-        background: 'rgba(8, 18, 32, 0.95)',
-        borderRight: '1px solid var(--border)',
+        width: '256px', flexShrink: 0,
+        background: 'linear-gradient(180deg, rgba(10, 22, 38, 0.98) 0%, rgba(8, 18, 32, 0.96) 100%)',
+        borderRight: '1px solid var(--border2)',
         display: 'flex', flexDirection: 'column',
-        backdropFilter: 'blur(20px)',
+        backdropFilter: 'blur(24px)',
         position: 'relative', zIndex: 10,
+        boxShadow: '4px 0 32px rgba(0,0,0,0.25)',
       }}>
 
         {/* Logo — AVA style */}
@@ -65,20 +67,20 @@ export default function Layout({ navItems, pageTitle, children }) {
                     key={item.path}
                     onClick={() => navigate(item.path)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '10px 20px', margin: '1px 8px',
-                      fontSize: '13px', fontWeight: active ? '600' : '400',
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '11px 16px', margin: '2px 10px',
+                      fontSize: '13px', fontWeight: active ? '600' : '500',
                       color: active ? 'var(--text)' : 'var(--text2)',
                       cursor: 'pointer', borderRadius: 'var(--radius-sm)',
-                      background: active ? 'rgba(32,178,170,0.15)' : 'transparent',
-                      border: active ? '1px solid var(--border2)' : '1px solid transparent',
-                      transition: 'all 0.15s',
+                      background: active ? 'linear-gradient(90deg, rgba(32,178,170,0.18) 0%, rgba(32,178,170,0.06) 100%)' : 'transparent',
+                      border: active ? '1px solid rgba(32,178,170,0.35)' : '1px solid transparent',
+                      transition: 'all 0.18s ease',
                     }}
                     onMouseEnter={e => !active && (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
                     onMouseLeave={e => !active && (e.currentTarget.style.background = 'transparent')}
                   >
-                    <span style={{ fontSize: '16px', lineHeight: 1 }}>{item.icon}</span>
-                    <span>{item.label}</span>
+                    <NavIcon className={item.icon} active={active} />
+                    <span style={{ letterSpacing: '0.01em' }}>{item.label}</span>
                     {active && (
                       <div style={{
                         marginLeft: 'auto', width: '6px', height: '6px',
@@ -118,17 +120,19 @@ export default function Layout({ navItems, pageTitle, children }) {
             </div>
           </div>
           <button
+            type="button"
             onClick={handleLogout}
             style={{
-              width: '100%', padding: '8px', background: 'transparent',
-              border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-              color: 'var(--text2)', fontSize: '12px', cursor: 'pointer',
-              transition: 'all 0.15s',
+              width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.03)',
+              border: '1px solid var(--border2)', borderRadius: 'var(--radius-sm)',
+              color: 'var(--text2)', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+              transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
-            onMouseEnter={e => { e.target.style.borderColor = 'var(--red)'; e.target.style.color = 'var(--red)' }}
-            onMouseLeave={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--text2)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,82,82,0.45)'; e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.background = 'var(--red-bg)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
           >
-            Logout
+            <i className="fa-solid fa-arrow-right-from-bracket" style={{ fontSize: '12px' }} aria-hidden />
+            Déconnexion
           </button>
         </div>
       </aside>
@@ -137,20 +141,24 @@ export default function Layout({ navItems, pageTitle, children }) {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Topbar */}
         <div style={{
-          height: '60px', flexShrink: 0,
-          borderBottom: '1px solid var(--border)',
+          height: '64px', flexShrink: 0,
+          borderBottom: '1px solid var(--border2)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 28px',
-          background: 'rgba(8,18,32,0.8)', backdropFilter: 'blur(12px)',
+          background: 'linear-gradient(180deg, rgba(12,26,46,0.92) 0%, rgba(8,18,32,0.88) 100%)',
+          backdropFilter: 'blur(14px)',
         }}>
           <span style={{
-            fontFamily: 'var(--font-display)', fontSize: '18px',
-            fontWeight: '700', color: 'var(--text)', letterSpacing: '-0.3px',
+            fontFamily: 'var(--font-display)', fontSize: '17px',
+            fontWeight: '700', color: 'var(--text)', letterSpacing: '-0.4px',
           }}>{pageTitle}</span>
-          {/* Cyan dot indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 8px var(--green)', animation: 'glow 2s infinite' }} />
-            <span style={{ fontSize: '12px', color: 'var(--text3)' }}>Connected</span>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '6px 12px', borderRadius: '999px',
+            background: 'rgba(0, 230, 118, 0.08)', border: '1px solid rgba(0, 230, 118, 0.2)',
+          }}>
+            <i className="fa-solid fa-circle-check" style={{ fontSize: '14px', color: 'var(--green)' }} aria-hidden />
+            <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text2)', letterSpacing: '0.04em' }}>Session active</span>
           </div>
         </div>
 
