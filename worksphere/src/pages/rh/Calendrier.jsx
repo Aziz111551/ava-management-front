@@ -9,6 +9,7 @@ import {
   WS_GOOGLE_CAL_TOKEN_KEY,
 } from '../../services/googleCalendar'
 import CalendrierGoogleConnect from './CalendrierGoogleConnect'
+import { Modal, Pill, Btn } from '../../components/shared/UI'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -38,7 +39,14 @@ function normalizeMeetings(data) {
     title: m.title ?? '(Sans titre)',
     date: m.date,
     time: (m.time || '09:00').toString().slice(0, 5),
+    endTime: m.endTime ? String(m.endTime).slice(0, 5) : '',
+    allDay: Boolean(m.allDay),
     attendees: typeof m.attendees === 'number' ? m.attendees : 1,
+    attendeeNames: Array.isArray(m.attendeeNames) ? m.attendeeNames : [],
+    location: m.location || '',
+    description: m.description || '',
+    htmlLink: m.htmlLink || '',
+    hangoutLink: m.hangoutLink || '',
     type: m.type && typeColors[m.type] ? m.type : 'team',
   })).filter((m) => Boolean(m.date))
 }
@@ -79,6 +87,7 @@ export default function Calendrier() {
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState(null)
+  const [meetingDetail, setMeetingDetail] = useState(null)
   const [googleConnected, setGoogleConnected] = useState(
     () => Boolean(typeof sessionStorage !== 'undefined' && sessionStorage.getItem(WS_GOOGLE_CAL_TOKEN_KEY)),
   )
@@ -255,12 +264,37 @@ export default function Calendrier() {
                       {dayMeetings.slice(0, 2).map((m) => {
                         const c = typeColors[m.type] || typeColors.team
                         return (
-                          <div key={m.id} style={{ fontSize: '9px', padding: '1px 4px', borderRadius: '3px', background: c.bg, color: c.color, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div
+                            key={m.id}
+                            role="button"
+                            tabIndex={0}
+                            title="Voir les détails"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setMeetingDetail(m)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setMeetingDetail(m)
+                              }
+                            }}
+                            style={{
+                              fontSize: '9px', padding: '1px 4px', borderRadius: '3px', background: c.bg, color: c.color,
+                              marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              cursor: 'pointer',
+                            }}
+                          >
                             {m.title}
                           </div>
                         )
                       })}
-                      {dayMeetings.length > 2 && <div style={{ fontSize: '9px', color: 'var(--text3)' }}>+{dayMeetings.length - 2}</div>}
+                      {dayMeetings.length > 2 && (
+                        <div style={{ fontSize: '9px', color: 'var(--text3)' }} title="Sélectionnez le jour pour voir la liste complète">
+                          +{dayMeetings.length - 2}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -280,10 +314,28 @@ export default function Calendrier() {
           {selectedMeetings.map((m) => {
             const c = typeColors[m.type] || typeColors.team
             return (
-              <div key={m.id} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
+              <div
+                key={m.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setMeetingDetail(m)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setMeetingDetail(m)
+                  }
+                }}
+                style={{
+                  background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', marginBottom: '10px',
+                  cursor: 'pointer', transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--cyan)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+              >
                 <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text)', marginBottom: '6px' }}>{m.title}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px' }}>🕐 {m.time} · {m.attendees} participants</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px' }}>🕐 {m.time} · {m.attendees} participant{m.attendees > 1 ? 's' : ''}</div>
                 <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: c.bg, color: c.color }}>{m.type}</span>
+                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px' }}>Cliquer pour les détails</div>
               </div>
             )
           })}
@@ -293,7 +345,24 @@ export default function Calendrier() {
               {upcomingFromToday(meetings, 4).map((m) => {
                 const c = typeColors[m.type] || typeColors.team
                 return (
-                  <div key={m.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '10px', padding: '10px', background: 'var(--bg3)', borderRadius: '8px' }}>
+                  <div
+                    key={m.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setMeetingDetail(m)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setMeetingDetail(m)
+                      }
+                    }}
+                    style={{
+                      display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '10px', padding: '10px', background: 'var(--bg3)', borderRadius: '8px',
+                      cursor: 'pointer', border: '1px solid transparent',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--border2)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent' }}
+                  >
                     <div style={{ width: '3px', height: '100%', minHeight: '32px', borderRadius: '2px', background: c.color, flexShrink: 0 }} />
                     <div>
                       <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--text)' }}>{m.title}</div>
@@ -309,6 +378,82 @@ export default function Calendrier() {
           )}
         </div>
       </div>
+
+      <Modal
+        open={!!meetingDetail}
+        onClose={() => setMeetingDetail(null)}
+        title={meetingDetail ? meetingDetail.title : ''}
+      >
+        {meetingDetail && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: 'min(70vh, 520px)', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+              <Pill type={meetingDetail.type === 'interview' ? 'cyan' : meetingDetail.type === 'company' ? 'amber' : meetingDetail.type === 'hr' ? 'green' : 'blue'}>
+                {meetingDetail.type}
+              </Pill>
+              <span style={{ fontSize: '12px', color: 'var(--text3)' }}>
+                {new Date(`${meetingDetail.date}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            </div>
+
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: '10px', padding: '12px 14px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '6px' }}>Horaire</div>
+              <div style={{ fontSize: '14px', color: 'var(--text)' }}>
+                {meetingDetail.allDay
+                  ? 'Journée entière'
+                  : meetingDetail.endTime
+                    ? `${meetingDetail.time} → ${meetingDetail.endTime}`
+                    : meetingDetail.time}
+              </div>
+            </div>
+
+            {meetingDetail.location ? (
+              <div style={{ background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: '10px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '6px' }}>Lieu</div>
+                <div style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>{meetingDetail.location}</div>
+              </div>
+            ) : null}
+
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: '10px', padding: '12px 14px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '6px' }}>Participants</div>
+              <div style={{ fontSize: '13px', color: 'var(--text)' }}>
+                {meetingDetail.attendeeNames && meetingDetail.attendeeNames.length > 0
+                  ? (
+                    <ul style={{ margin: 0, paddingLeft: '18px', lineHeight: 1.6 }}>
+                      {meetingDetail.attendeeNames.slice(0, 40).map((name, i) => (
+                        <li key={i}>{name}</li>
+                      ))}
+                      {meetingDetail.attendeeNames.length > 40 && (
+                        <li style={{ color: 'var(--text3)' }}>… et {meetingDetail.attendeeNames.length - 40} autres</li>
+                      )}
+                    </ul>
+                  )
+                  : `${meetingDetail.attendees} participant${meetingDetail.attendees > 1 ? 's' : ''} (détail non fourni par la source)`}
+              </div>
+            </div>
+
+            {meetingDetail.description ? (
+              <div style={{ background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: '10px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '6px' }}>Description</div>
+                <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{meetingDetail.description}</div>
+              </div>
+            ) : null}
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '4px' }}>
+              {meetingDetail.htmlLink ? (
+                <Btn small variant="primary" onClick={() => window.open(meetingDetail.htmlLink, '_blank', 'noopener,noreferrer')}>
+                  Ouvrir dans Google Calendar ↗
+                </Btn>
+              ) : null}
+              {meetingDetail.hangoutLink ? (
+                <Btn small variant="ghost" onClick={() => window.open(meetingDetail.hangoutLink, '_blank', 'noopener,noreferrer')}>
+                  Lien visio ↗
+                </Btn>
+              ) : null}
+              <Btn small variant="ghost" onClick={() => setMeetingDetail(null)}>Fermer</Btn>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

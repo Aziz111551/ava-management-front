@@ -38,16 +38,44 @@ export function mapGoogleEventToMeeting(item) {
   if (!startRaw) return null
   const d = item.start?.dateTime ? parseISO(item.start.dateTime) : parseISO(`${item.start.date}T00:00:00`)
   const date = format(d, 'yyyy-MM-dd')
+  const allDay = Boolean(item.start?.date && !item.start?.dateTime)
   const time = item.start?.dateTime ? format(d, 'HH:mm') : '00:00'
+  let endTime = ''
+  const endRaw = item.end?.dateTime || item.end?.date
+  if (endRaw) {
+    const de = item.end?.dateTime ? parseISO(item.end.dateTime) : parseISO(`${item.end.date}T00:00:00`)
+    endTime = item.end?.dateTime ? format(de, 'HH:mm') : ''
+  }
   const title = item.summary || '(Sans titre)'
-  const attendees = Array.isArray(item.attendees) ? item.attendees.length : 0
+  const rawAtt = Array.isArray(item.attendees) ? item.attendees : []
+  const attendees = rawAtt.length
+  const attendeeNames = rawAtt
+    .map((a) => a.displayName || a.email || '')
+    .filter(Boolean)
+  const description = (item.description && String(item.description).trim()) || ''
+  const location = (item.location && String(item.location).trim()) || ''
+  const htmlLink = typeof item.htmlLink === 'string' ? item.htmlLink : ''
+  const hangoutLink =
+    typeof item.hangoutLink === 'string'
+      ? item.hangoutLink
+      : typeof item.conferenceData?.entryPoints?.[0]?.uri === 'string'
+        ? item.conferenceData.entryPoints[0].uri
+        : ''
+
   return {
     id: String(item.id),
     title,
     date,
     time,
+    endTime,
+    allDay,
     attendees: Math.max(attendees, 1),
+    attendeeNames,
     type: guessType(title),
+    location,
+    description,
+    htmlLink,
+    hangoutLink,
   }
 }
 
