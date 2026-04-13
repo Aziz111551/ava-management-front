@@ -65,15 +65,22 @@ export function normalizeEvaluation(raw, index) {
       ? String(created)
       : new Date().toISOString()
 
-  const id =
+  /**
+   * Toujours suffixer par l’index : certains exports (Sheets / n8n) répètent le même
+   * `row_number` ou `id` pour chaque ligne — sans ça, un Decline efface toute la liste.
+   */
+  const base =
     raw.evaluation_id ??
     raw.id ??
     raw._id ??
-    raw.row_number ??
-    index
+    raw.row_number
+  const _id =
+    base != null && String(base).trim() !== ''
+      ? `${String(base).trim()}:${index}`
+      : `idx-${index}`
 
   return {
-    _id: String(id),
+    _id,
     name,
     email,
     position,
