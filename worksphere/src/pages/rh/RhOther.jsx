@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
-import { getReclamations, updateReclamation, getMaladies } from '../../services/api'
+import { getReclamations, updateReclamation, getMaladies, addEmployee } from '../../services/api'
 import { fetchEvaluations } from '../../services/evaluationsWebhook'
+import {
+  filterUnresolvedCandidats,
+  setCandidatDecision,
+  candidateToEmployeePayload,
+} from '../../services/candidatsPhase1'
 import { SectionTitle, Pill, Btn, Table, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
 
 // ── RECLAMATIONS ──────────────────────────────────────────────
@@ -71,6 +76,7 @@ export function Candidats() {
   const [cands, setCands] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [processingId, setProcessingId] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -78,7 +84,7 @@ export function Candidats() {
     setError(null)
     fetchEvaluations()
       .then((rows) => {
-        if (!cancelled) setCands(rows)
+        if (!cancelled) setCands(filterUnresolvedCandidats(rows))
       })
       .catch((e) => {
         if (!cancelled) setError(e?.message || 'Impossible de charger les évaluations')
@@ -88,6 +94,33 @@ export function Candidats() {
       })
     return () => { cancelled = true }
   }, [])
+
+  const handleAccept = async (row) => {
+    const email = (row.email || '').trim()
+    if (!email) {
+      alert('Adresse e-mail requise pour ajouter l’employé à la liste.')
+      return
+    }
+    setProcessingId(row._id)
+    try {
+      const payload = candidateToEmployeePayload(row)
+      await addEmployee(payload)
+      setCandidatDecision(row._id, 'accepted')
+      setCands((prev) => prev.filter((c) => c._id !== row._id))
+      window.dispatchEvent(new Event('ws-refresh-employees'))
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Erreur lors de la création de l’employé'
+      alert(msg)
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleDecline = (row) => {
+    if (!window.confirm('Refuser ce candidat ? Il sera retiré de cette liste (décision enregistrée sur cet appareil).')) return
+    setCandidatDecision(row._id, 'declined')
+    setCands((prev) => prev.filter((c) => c._id !== row._id))
+  }
 
   const avgPct =
     cands.length > 0
@@ -152,6 +185,42 @@ export function Candidats() {
                 <Btn small variant="ghost" disabled>{cvBtn}</Btn>
               )
             } },
+            {
+              key: '_actions',
+              label: 'Actions',
+              width: '148px',
+              render: (_, row) => {
+                const busy = processingId === row._id
+                return (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Btn
+                      small
+                      variant="primary"
+                      disabled={busy}
+                      title="Accepter — ajoute l’employé à la liste"
+                      onClick={() => handleAccept(row)}
+                    >
+                      {busy ? (
+                        <i className="fa-solid fa-spinner fa-spin" aria-hidden />
+                      ) : (
+                        <i className="fa-solid fa-check" aria-hidden />
+                      )}
+                      <span>Accept</span>
+                    </Btn>
+                    <Btn
+                      small
+                      variant="danger"
+                      disabled={busy}
+                      title="Refuser — retirer de la phase 1"
+                      onClick={() => handleDecline(row)}
+                    >
+                      <i className="fa-solid fa-xmark" aria-hidden />
+                      <span>Decline</span>
+                    </Btn>
+                  </div>
+                )
+              },
+            },
           ]}
           rows={cands}
         />

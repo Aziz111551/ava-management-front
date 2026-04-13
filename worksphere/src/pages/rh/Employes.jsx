@@ -23,7 +23,13 @@ export default function Employes() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
 
-  useEffect(() => { getEmployees().then(r => setEmployees(r.data)).catch(() => {}) }, [])
+  useEffect(() => {
+    const load = () => getEmployees().then((r) => setEmployees(r.data)).catch(() => {})
+    load()
+    const onRefresh = () => load()
+    window.addEventListener('ws-refresh-employees', onRefresh)
+    return () => window.removeEventListener('ws-refresh-employees', onRefresh)
+  }, [])
 
   const filtered = employees.filter(e => {
     const q = search.toLowerCase()
