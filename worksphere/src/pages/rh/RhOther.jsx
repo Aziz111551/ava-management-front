@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getReclamations, updateReclamation, getMaladies, addEmployee } from '../../services/api'
 import { fetchEvaluations } from '../../services/evaluationsWebhook'
 import {
@@ -75,8 +75,22 @@ export function Reclamations() {
 export function Candidats() {
   const [cands, setCands] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [processingId, setProcessingId] = useState(null)
+
+  const refreshList = useCallback(async () => {
+    setRefreshing(true)
+    setError(null)
+    try {
+      const rows = await fetchEvaluations()
+      setCands(filterUnresolvedCandidats(rows))
+    } catch (e) {
+      setError(e?.message || 'Impossible de charger les évaluations')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -136,7 +150,26 @@ export function Candidats() {
         <StatCard label="Average Score" value={loading ? '…' : avgPct} color="var(--green)" />
         <StatCard label="Open Positions" value={loading ? '…' : openPositions} color="var(--blue)" />
       </Grid>
-      <SectionTitle>Accepted Candidates — Phase 1</SectionTitle>
+      <SectionTitle
+        action={
+          <Btn
+            small
+            variant="ghost"
+            disabled={loading || refreshing}
+            onClick={refreshList}
+            title="Actualiser les données (webhook)"
+            style={{ gap: '8px' }}
+          >
+            <i
+              className={`fa-solid fa-arrows-rotate ${refreshing ? 'fa-spin' : ''}`}
+              aria-hidden
+            />
+            Refresh
+          </Btn>
+        }
+      >
+        Accepted Candidates — Phase 1
+      </SectionTitle>
       {error && (
         <div style={{ fontSize: '13px', color: 'var(--red)', marginBottom: '12px' }}>{error}</div>
       )}
