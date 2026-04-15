@@ -6,7 +6,8 @@ import { verifyTechToken, techTestAI } from '../../services/techTestInvite'
 /** Page publique : test technique (sans layout RH). */
 export default function TechnicalTestPage() {
   const [searchParams] = useSearchParams()
-  const token = searchParams.get('t') || ''
+  /** Jeton URL : trim + retirer espaces (copier-coller depuis certains clients mail) */
+  const token = (searchParams.get('t') || '').trim().replace(/\s/g, '')
 
   const [step, setStep] = useState('loading')
   const [error, setError] = useState('')

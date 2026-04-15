@@ -35,17 +35,17 @@ function siteBase(event) {
   return ''
 }
 
-async function sendResend({ to, subject, html }) {
+async function sendResend({ to, subject, html, text }) {
   const key = process.env.RESEND_API_KEY
   if (!key) return false
-  const from = process.env.EMAIL_FROM || 'WorkSphere <onboarding@resend.dev>'
+  const from = (process.env.EMAIL_FROM || 'WorkSphere <onboarding@resend.dev>').trim()
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from, to, subject, html }),
+    body: JSON.stringify({ from, to, subject, html, ...(text ? { text } : {}) }),
   })
   return res.ok
 }
@@ -62,7 +62,7 @@ export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' }
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' })
 
-  const secret = process.env.TECH_TEST_JWT_SECRET
+  const secret = (process.env.TECH_TEST_JWT_SECRET || '').trim()
   if (!secret || secret.length < 16) {
     return json(500, {
       ok: false,
@@ -106,13 +106,15 @@ export const handler = async (event) => {
     <p>Félicitations : votre candidature est <strong>acceptée</strong> pour la suite du processus.</p>
     <p>Vous devez maintenant passer un <strong>test technique JavaScript</strong> en ligne (éditeur de code, caméra et micro requis, plein écran).</p>
     <p><a href="${inviteUrl}" style="color:#20b2aa;font-weight:bold;">Ouvrir le test technique</a></p>
+    <p style="word-break:break-all;font-size:12px;color:#666;">Si le bouton ne marche pas, copiez ce lien :<br>${escapeHtml(inviteUrl)}</p>
     <p>Ce lien est personnel et expire sous 7 jours.</p>
     <p>— AVA Management / WorkSphere</p>
   `
+  const text = `Bonjour ${name},\n\nVoici votre lien pour le test technique (à ouvrir dans le navigateur) :\n\n${inviteUrl}\n\nCe lien est personnel et expire sous 7 jours.\n— AVA Management / WorkSphere`
 
   let emailSent = false
   try {
-    emailSent = await sendResend({ to: email, subject, html })
+    emailSent = await sendResend({ to: email, subject, html, text })
   } catch {
     emailSent = false
   }
@@ -123,7 +125,7 @@ export const handler = async (event) => {
     inviteUrl,
     emailSent,
     message: emailSent
-      ? 'E-mail envoyé.'
-      : 'E-mail non configuré (RESEND_API_KEY). Copiez le lien manuellement.',
+      ? 'E-mail envoyé au candidat.'
+      : 'E-mail non envoyé : ajoutez RESEND_API_KEY et EMAIL_FROM dans Netlify. Le lien reste valide ci-dessous.',
   })
 }

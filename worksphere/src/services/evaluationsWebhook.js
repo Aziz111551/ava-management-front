@@ -1,6 +1,6 @@
 /**
- * GET JSON depuis le webhook n8n (équivalent logique à un parseur type ats_api).
- * Accepte un tableau racine ou un objet avec une liste sous evaluations, data, rows, etc.
+ * GET JSON (tableau ou objet avec evaluations, data, rows, etc.).
+ * Surcharge : VITE_EVALUATIONS_WEBHOOK_URL dans l’environnement de build.
  */
 
 const DEFAULT_WEBHOOK =
@@ -26,7 +26,7 @@ export function extractEvaluationsArray(payload) {
   return []
 }
 
-/** Clés atypiques renvoyées par certains exports (ex. Google Sheets → n8n). */
+/** Clés atypiques renvoyées par certains exports (ex. Google Sheets). */
 function pickCreatedAt(raw) {
   return (
     raw['created_at (date traitement)'] ??
@@ -66,7 +66,7 @@ export function normalizeEvaluation(raw, index) {
       : new Date().toISOString()
 
   /**
-   * Toujours suffixer par l’index : certains exports (Sheets / n8n) répètent le même
+   * Toujours suffixer par l’index : certains exports répètent le même
    * `row_number` ou `id` pour chaque ligne — sans ça, un Decline efface toute la liste.
    */
   const base =
@@ -92,7 +92,9 @@ export function normalizeEvaluation(raw, index) {
 }
 
 export async function fetchEvaluations() {
-  const url = import.meta.env.VITE_EVALUATIONS_WEBHOOK_URL || DEFAULT_WEBHOOK
+  const url = (
+    import.meta.env.VITE_EVALUATIONS_WEBHOOK_URL || DEFAULT_WEBHOOK
+  ).trim()
   const res = await fetch(url, {
     headers: { Accept: 'application/json' },
   })

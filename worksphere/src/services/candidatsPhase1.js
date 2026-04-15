@@ -1,5 +1,5 @@
 /**
- * Persistance locale des décisions Phase 1 (le webhook n8n renvoie toujours les mêmes lignes).
+ * Persistance locale des décisions Phase 1 (la source JSON renvoie toujours les mêmes lignes).
  * Clé : id normalisé du candidat ({@link normalizeEvaluation}).
  */
 const STORAGE_KEY = 'ws_phase1_candidat_decisions'

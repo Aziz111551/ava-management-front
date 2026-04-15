@@ -122,8 +122,8 @@ export function Candidats() {
         name: row.name?.trim() || 'Candidat',
       })
       let msg = inv.emailSent
-        ? `E-mail envoyé à ${email} avec le lien du test technique.`
-        : `Lien du test technique :\n${inv.inviteUrl}`
+        ? (inv.message || `E-mail envoyé à ${email} (test technique).`)
+        : `${inv.message ? `${inv.message}\n\n` : ''}Lien :\n${inv.inviteUrl}`
       try {
         await navigator.clipboard.writeText(inv.inviteUrl)
         msg += '\n\n(Lien copié dans le presse-papiers.)'
@@ -167,7 +167,7 @@ export function Candidats() {
             variant="ghost"
             disabled={loading || refreshing}
             onClick={refreshList}
-            title="Actualiser les données (webhook)"
+            title="Actualiser la liste des candidats"
             style={{ gap: '8px' }}
           >
             <i

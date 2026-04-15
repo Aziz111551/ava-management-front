@@ -18,8 +18,8 @@ export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' }
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' })
 
-  const secret = process.env.TECH_TEST_JWT_SECRET
-  if (!secret) return json(500, { ok: false, error: 'Server misconfigured' })
+  const secret = (process.env.TECH_TEST_JWT_SECRET || '').trim()
+  if (!secret) return json(500, { ok: false, error: 'TECH_TEST_JWT_SECRET manquant sur Netlify.' })
 
   let body
   try {
