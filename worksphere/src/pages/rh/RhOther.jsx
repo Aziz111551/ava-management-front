@@ -6,6 +6,7 @@ import {
   setCandidatDecision,
   candidateToEmployeePayload,
 } from '../../services/candidatsPhase1'
+import { issueTechnicalTestInvite } from '../../services/techTestInvite'
 import { SectionTitle, Pill, Btn, Table, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
 
 // ── RECLAMATIONS ──────────────────────────────────────────────
@@ -119,9 +120,28 @@ export function Candidats() {
     try {
       const payload = candidateToEmployeePayload(row)
       await addEmployee(payload)
+      let inviteMsg = ''
+      try {
+        const inv = await issueTechnicalTestInvite({
+          email,
+          name: row.name?.trim() || 'Candidat',
+        })
+        inviteMsg = inv.emailSent
+          ? `\n\nE-mail de test technique envoyé à ${email}.`
+          : `\n\nLien test technique (copiez-le si besoin) :\n${inv.inviteUrl}`
+        try {
+          await navigator.clipboard.writeText(inv.inviteUrl)
+          inviteMsg += '\n(Lien copié dans le presse-papiers.)'
+        } catch {
+          /* ignore */
+        }
+      } catch (e) {
+        inviteMsg = `\n\nInvitation test technique : ${e.message || 'non générée (configurez les fonctions Netlify + TECH_TEST_JWT_SECRET).'}`
+      }
       setCandidatDecision(row._id, 'accepted')
       setCands((prev) => prev.filter((c) => c._id !== row._id))
       window.dispatchEvent(new Event('ws-refresh-employees'))
+      alert(`Employé créé.${inviteMsg}`)
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Erreur lors de la création de l’employé'
       alert(msg)

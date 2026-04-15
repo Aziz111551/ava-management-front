@@ -11,6 +11,10 @@
   VITE_API_URL = "https://backendagentai-production.up.railway.app"
   VITE_GOOGLE_CLIENT_ID = "1060943502441-ik8hkdqs9teqlcgqmn6sfd5j4ib5hq4s.apps.googleusercontent.com"
 
+[functions]
+  directory = "worksphere/netlify/functions"
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

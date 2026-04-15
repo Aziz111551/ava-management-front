@@ -14,6 +14,7 @@ import EmployeeLayout from './pages/employee/EmployeeLayout'
 import EmployeeDashboard from './pages/employee/Dashboard'
 import { MesProjets, TachesTrello } from './pages/employee/EmployeeWork'
 import { DemandeConge, DeclarerMaladie } from './pages/employee/EmployeeRH'
+import TechnicalTestPage from './pages/public/TechnicalTestPage'
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, loading } = useAuth()
@@ -63,6 +64,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
+          {/* Test technique public (lien signé par fonction Netlify) */}
+          <Route path="/technical-test" element={<TechnicalTestPage />} />
 
           {/* RH ROUTES */}
           <Route path="/rh" element={
