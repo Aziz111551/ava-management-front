@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getReclamations, updateReclamation, getMaladies, addEmployee } from '../../services/api'
+import { getReclamations, updateReclamation, getMaladies } from '../../services/api'
 import { fetchEvaluations } from '../../services/evaluationsWebhook'
 import {
   filterUnresolvedCandidats,
   setCandidatDecision,
-  candidateToEmployeePayload,
 } from '../../services/candidatsPhase1'
 import { issueTechnicalTestInvite } from '../../services/techTestInvite'
 import { SectionTitle, Pill, Btn, Table, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
@@ -113,38 +112,29 @@ export function Candidats() {
   const handleAccept = async (row) => {
     const email = (row.email || '').trim()
     if (!email) {
-      alert('Adresse e-mail requise pour ajouter l’employé à la liste.')
+      alert('Adresse e-mail requise pour envoyer le lien du test technique.')
       return
     }
     setProcessingId(row._id)
     try {
-      const payload = candidateToEmployeePayload(row)
-      await addEmployee(payload)
-      let inviteMsg = ''
+      const inv = await issueTechnicalTestInvite({
+        email,
+        name: row.name?.trim() || 'Candidat',
+      })
+      let msg = inv.emailSent
+        ? `E-mail envoyé à ${email} avec le lien du test technique.`
+        : `Lien du test technique :\n${inv.inviteUrl}`
       try {
-        const inv = await issueTechnicalTestInvite({
-          email,
-          name: row.name?.trim() || 'Candidat',
-        })
-        inviteMsg = inv.emailSent
-          ? `\n\nE-mail de test technique envoyé à ${email}.`
-          : `\n\nLien test technique (copiez-le si besoin) :\n${inv.inviteUrl}`
-        try {
-          await navigator.clipboard.writeText(inv.inviteUrl)
-          inviteMsg += '\n(Lien copié dans le presse-papiers.)'
-        } catch {
-          /* ignore */
-        }
-      } catch (e) {
-        inviteMsg = `\n\nInvitation test technique : ${e.message || 'non générée (configurez les fonctions Netlify + TECH_TEST_JWT_SECRET).'}`
+        await navigator.clipboard.writeText(inv.inviteUrl)
+        msg += '\n\n(Lien copié dans le presse-papiers.)'
+      } catch {
+        /* ignore */
       }
       setCandidatDecision(row._id, 'accepted')
       setCands((prev) => prev.filter((c) => c._id !== row._id))
-      window.dispatchEvent(new Event('ws-refresh-employees'))
-      alert(`Employé créé.${inviteMsg}`)
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Erreur lors de la création de l’employé'
       alert(msg)
+    } catch (err) {
+      alert(err.message || 'Impossible de générer le lien du test.')
     } finally {
       setProcessingId(null)
     }
@@ -250,7 +240,7 @@ export function Candidats() {
                       small
                       variant="primary"
                       disabled={busy}
-                      title="Accepter — ajoute l’employé à la liste"
+                      title="Accepter — envoie le lien du test technique (sans créer d’employé)"
                       onClick={() => handleAccept(row)}
                     >
                       {busy ? (

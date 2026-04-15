@@ -1,4 +1,4 @@
-const crypto = require('crypto')
+import { createHmac } from 'crypto'
 
 function base64urlEncode(str) {
   return Buffer.from(str, 'utf8')
@@ -8,12 +8,11 @@ function base64urlEncode(str) {
     .replace(/\//g, '_')
 }
 
-function signHS256(payload, secret) {
+export function signHS256(payload, secret) {
   const header = { alg: 'HS256', typ: 'JWT' }
   const h = base64urlEncode(JSON.stringify(header))
   const p = base64urlEncode(JSON.stringify(payload))
-  const sig = crypto
-    .createHmac('sha256', secret)
+  const sig = createHmac('sha256', secret)
     .update(`${h}.${p}`)
     .digest('base64')
     .replace(/=/g, '')
@@ -22,12 +21,11 @@ function signHS256(payload, secret) {
   return `${h}.${p}.${sig}`
 }
 
-function verifyJWT(token, secret) {
+export function verifyJWT(token, secret) {
   const parts = String(token).split('.')
   if (parts.length !== 3) return null
   const [h, p, s] = parts
-  const expected = crypto
-    .createHmac('sha256', secret)
+  const expected = createHmac('sha256', secret)
     .update(`${h}.${p}`)
     .digest('base64')
     .replace(/=/g, '')
@@ -44,5 +42,3 @@ function verifyJWT(token, secret) {
   if (payload.exp && Date.now() / 1000 > payload.exp) return null
   return payload
 }
-
-module.exports = { signHS256, verifyJWT }

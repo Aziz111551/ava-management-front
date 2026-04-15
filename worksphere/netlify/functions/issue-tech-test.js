@@ -1,4 +1,4 @@
-const { signHS256 } = require('./lib/jwt.js')
+import { signHS256 } from './lib/jwt.js'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -14,10 +14,6 @@ function json(statusCode, body) {
   }
 }
 
-/**
- * L’URL publique n’est pas toujours injectée dans les fonctions Netlify.
- * On utilise d’abord les variables d’env, sinon les en-têtes de la requête (Host + HTTPS).
- */
 function siteBase(event) {
   const fromEnv = (
     process.env.URL ||
@@ -54,7 +50,15 @@ async function sendResend({ to, subject, html }) {
   return res.ok
 }
 
-exports.handler = async (event) => {
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' }
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' })
 
@@ -122,12 +126,4 @@ exports.handler = async (event) => {
       ? 'E-mail envoyé.'
       : 'E-mail non configuré (RESEND_API_KEY). Copiez le lien manuellement.',
   })
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }

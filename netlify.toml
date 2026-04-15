@@ -15,6 +15,13 @@
   directory = "worksphere/netlify/functions"
   node_bundler = "esbuild"
 
+# Test local : à la racine du repo, lance `npm run dev:netlify` (Vite + fonctions sur le même port proxy).
+[dev]
+  command = "npm run dev"
+  targetPort = 3000
+  port = 8888
+  publish = "dist"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

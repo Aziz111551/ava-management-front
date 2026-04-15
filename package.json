@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run dev --prefix worksphere",
+    "dev:netlify": "npx netlify-cli dev",
     "build": "npm run build --prefix worksphere",
     "preview": "npm run preview --prefix worksphere"
   }

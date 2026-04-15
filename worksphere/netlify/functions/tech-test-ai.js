@@ -1,4 +1,4 @@
-const { verifyJWT } = require('./lib/jwt.js')
+import { verifyJWT } from './lib/jwt.js'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -40,7 +40,7 @@ async function openaiChat(messages, jsonMode = true) {
   return data.choices?.[0]?.message?.content || ''
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' }
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' })
 
