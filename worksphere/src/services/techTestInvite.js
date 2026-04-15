@@ -4,14 +4,35 @@ const FN = '/.netlify/functions'
  * Crée un lien signé + envoie l’e-mail (si Resend configuré sur Netlify).
  * Nécessite les fonctions Netlify déployées (ou `netlify dev`).
  */
+function bodyToMessage(text, status) {
+  try {
+    const j = JSON.parse(text)
+    if (j.error) return j.error
+  } catch {
+    /* ignore */
+  }
+  if (status === 404) {
+    return 'Fonction Netlify introuvable (404). Vérifiez que netlify/functions est déployé (repo racine + base worksphere) et redéployez.'
+  }
+  return text?.slice(0, 220) || `HTTP ${status}`
+}
+
 export async function issueTechnicalTestInvite({ email, name }) {
   const res = await fetch(`${FN}/issue-tech-test`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, name }),
   })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok || !data.ok) throw new Error(data.error || 'Échec de la création du lien de test')
+  const text = await res.text()
+  let data = {}
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(bodyToMessage(text, res.status))
+  }
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || bodyToMessage(text, res.status))
+  }
   return data
 }
 

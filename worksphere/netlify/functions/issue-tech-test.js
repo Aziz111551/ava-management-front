@@ -14,14 +14,29 @@ function json(statusCode, body) {
   }
 }
 
-function siteBase() {
-  return (
+/**
+ * L’URL publique n’est pas toujours injectée dans les fonctions Netlify.
+ * On utilise d’abord les variables d’env, sinon les en-têtes de la requête (Host + HTTPS).
+ */
+function siteBase(event) {
+  const fromEnv = (
     process.env.URL ||
     process.env.DEPLOY_PRIME_URL ||
     process.env.NETLIFY_SITE_URL ||
     process.env.SITE_URL ||
     ''
-  ).replace(/\/$/, '')
+  )
+    .trim()
+    .replace(/\/$/, '')
+  if (fromEnv) return fromEnv
+
+  const h = event.headers || {}
+  const host = (h['x-forwarded-host'] || h.Host || h.host || '').split(',')[0].trim()
+  const proto = (h['x-forwarded-proto'] || 'https').split(',')[0].trim() || 'https'
+  if (host && !/^localhost(:\d+)?$/i.test(host)) {
+    return `${proto}://${host}`.replace(/\/$/, '')
+  }
+  return ''
 }
 
 async function sendResend({ to, subject, html }) {
@@ -70,11 +85,12 @@ exports.handler = async (event) => {
   const exp = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
   const token = signHS256({ sub: email, email, name, typ: 'tech_test', exp }, secret)
 
-  const base = siteBase()
+  const base = siteBase(event)
   if (!base) {
     return json(500, {
       ok: false,
-      error: 'URL du site non définie (URL / NETLIFY_SITE_URL).',
+      error:
+        'Impossible de déterminer l’URL du site. Ajoutez SITE_URL=https://votre-site.netlify.app dans Environment variables, ou redéployez après mise à jour.',
     })
   }
 
