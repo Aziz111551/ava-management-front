@@ -36,8 +36,10 @@ function siteBase(event) {
 }
 
 async function sendResend({ to, subject, html, text }) {
-  const key = process.env.RESEND_API_KEY
-  if (!key) return false
+  const key = (process.env.RESEND_API_KEY || '').trim()
+  if (!key) {
+    return { ok: false, error: 'RESEND_API_KEY manquante.' }
+  }
   const from = (process.env.EMAIL_FROM || 'WorkSphere <onboarding@resend.dev>').trim()
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -47,7 +49,21 @@ async function sendResend({ to, subject, html, text }) {
     },
     body: JSON.stringify({ from, to, subject, html, ...(text ? { text } : {}) }),
   })
-  return res.ok
+  let data = null
+  try {
+    data = await res.json()
+  } catch {
+    data = null
+  }
+  if (!res.ok) {
+    const apiError =
+      data?.message ||
+      data?.error?.message ||
+      data?.error ||
+      `Erreur Resend HTTP ${res.status}`
+    return { ok: false, error: apiError }
+  }
+  return { ok: true, id: data?.id || null }
 }
 
 function escapeHtml(s) {
@@ -112,19 +128,28 @@ export const handler = async (event) => {
   `
   const text = `Bonjour ${name},\n\nVoici votre lien pour le test technique (à ouvrir dans le navigateur) :\n\n${inviteUrl}\n\nCe lien est personnel et expire sous 7 jours.\n— AVA Management / WorkSphere`
 
-  let emailSent = false
+  const resendConfigured = Boolean((process.env.RESEND_API_KEY || '').trim())
+  let sendResult = { ok: false, error: 'Envoi non tenté.' }
   try {
-    emailSent = await sendResend({ to: email, subject, html, text })
-  } catch {
-    emailSent = false
+    sendResult = await sendResend({ to: email, subject, html, text })
+  } catch (err) {
+    sendResult = { ok: false, error: err?.message || 'Erreur inconnue lors de l’envoi Resend.' }
+  }
+
+  if (resendConfigured && !sendResult.ok) {
+    return json(502, {
+      ok: false,
+      inviteUrl,
+      error: `E-mail non envoyé : ${sendResult.error}`,
+    })
   }
 
   return json(200, {
     ok: true,
     token,
     inviteUrl,
-    emailSent,
-    message: emailSent
+    emailSent: sendResult.ok,
+    message: sendResult.ok
       ? 'E-mail envoyé au candidat.'
       : 'E-mail non envoyé : ajoutez RESEND_API_KEY et EMAIL_FROM dans Netlify. Le lien reste valide ci-dessous.',
   })

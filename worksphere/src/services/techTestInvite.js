@@ -7,7 +7,9 @@ const FN = '/.netlify/functions'
 function bodyToMessage(text, status) {
   try {
     const j = JSON.parse(text)
-    if (j.error) return j.error
+    if (j.error) {
+      return j.inviteUrl ? `${j.error}\n\nLien de secours:\n${j.inviteUrl}` : j.error
+    }
   } catch {
     /* ignore */
   }
