@@ -71,21 +71,42 @@ export const handler = async (event) => {
     .trim()
     .toLowerCase()
   const name = String(body.name || '').trim()
-  const temporaryPassword = String(body.temporaryPassword || '')
+  const temporaryPassword = String(body.temporaryPassword || '').trim()
   const loginUrl = String(body.loginUrl || '').trim().replace(/\/$/, '')
+  const hasPassword = temporaryPassword.length >= 6
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json(400, { ok: false, error: 'E-mail invalide' })
   }
-  if (!temporaryPassword || temporaryPassword.length < 6) {
-    return json(400, { ok: false, error: 'Mot de passe temporaire requis (min. 6 caractères).' })
-  }
 
   const prenom = firstName(name)
-  const subject = 'AVA Management — vos accès ont été créés'
+  const subject = hasPassword
+    ? 'AVA Management — vos accès ont été créés'
+    : 'AVA Management — votre compte a été créé'
+
   const loginBlock =
     loginUrl &&
-    `<p style="margin:20px 0 0;font-size:13px;"><a href="${escapeHtml(loginUrl)}" style="display:inline-block;padding:12px 20px;background:#14b8a6;color:#0f172a;text-decoration:none;border-radius:8px;font-weight:600;">Se connecter</a></p>`
+    `<p style="margin:20px 0 0;font-size:13px;"><a href="${escapeHtml(loginUrl)}" style="display:inline-block;padding:12px 20px;background:#14b8a6;color:#0f172a;text-decoration:none;border-radius:8px;font-weight:600;">Ouvrir la page de connexion</a></p>`
+
+  const credentialsBlock = hasPassword
+    ? `
+        <p style="color:#cbd5e1;font-size:14px;line-height:1.6;margin:0 0 20px;">Votre compte AVA Management a été créé. Voici vos identifiants :</p>
+        <div style="background:#0f172a;border-radius:12px;padding:20px;border:1px solid #334155;">
+          <div style="color:#64748b;font-size:12px;margin-bottom:6px;">Email</div>
+          <div style="color:#38bdf8;font-size:15px;word-break:break-all;margin-bottom:16px;">${escapeHtml(email)}</div>
+          <div style="color:#64748b;font-size:12px;margin-bottom:6px;">Mot de passe temporaire</div>
+          <div style="color:#14b8a6;font-size:22px;font-weight:700;letter-spacing:0.04em;font-family:ui-monospace,monospace;">${escapeHtml(temporaryPassword)}</div>
+        </div>
+        <p style="color:#64748b;font-size:12px;line-height:1.5;margin:16px 0 0;">Changez ce mot de passe après votre première connexion.</p>
+        `
+    : `
+        <p style="color:#cbd5e1;font-size:14px;line-height:1.6;margin:0 0 16px;">Votre compte AVA Management a été créé avec l’adresse ci-dessous.</p>
+        <div style="background:#0f172a;border-radius:12px;padding:20px;border:1px solid #334155;margin-bottom:16px;">
+          <div style="color:#64748b;font-size:12px;margin-bottom:6px;">Email de connexion</div>
+          <div style="color:#38bdf8;font-size:15px;word-break:break-all;">${escapeHtml(email)}</div>
+        </div>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 12px;"><strong>Première connexion :</strong> ouvrez le lien ci-dessous, puis utilisez <strong>« Mot de passe oublié »</strong> avec cette même adresse e-mail pour recevoir un lien et définir votre mot de passe.</p>
+        `
 
   const html = `
 <!DOCTYPE html>
@@ -98,16 +119,9 @@ export const handler = async (event) => {
           <div style="width:48px;height:48px;margin:0 auto 12px;background:#14b8a6;border-radius:10px;line-height:48px;font-size:22px;font-weight:700;color:#0f172a;">A</div>
           <div style="color:#f8fafc;font-size:18px;font-weight:600;">AVA Management</div>
         </div>
-        <h1 style="color:#f8fafc;font-size:18px;font-weight:600;margin:0 0 12px;">Vos accès ont été créés</h1>
+        <h1 style="color:#f8fafc;font-size:18px;font-weight:600;margin:0 0 12px;">${hasPassword ? 'Vos accès ont été créés' : 'Votre compte a été créé'}</h1>
         <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 16px;">Bonjour ${escapeHtml(prenom)},</p>
-        <p style="color:#cbd5e1;font-size:14px;line-height:1.6;margin:0 0 20px;">Votre compte AVA Management a été créé. Voici vos identifiants :</p>
-        <div style="background:#0f172a;border-radius:12px;padding:20px;border:1px solid #334155;">
-          <div style="color:#64748b;font-size:12px;margin-bottom:6px;">Email</div>
-          <div style="color:#38bdf8;font-size:15px;word-break:break-all;margin-bottom:16px;">${escapeHtml(email)}</div>
-          <div style="color:#64748b;font-size:12px;margin-bottom:6px;">Mot de passe temporaire</div>
-          <div style="color:#14b8a6;font-size:22px;font-weight:700;letter-spacing:0.04em;font-family:ui-monospace,monospace;">${escapeHtml(temporaryPassword)}</div>
-        </div>
-        <p style="color:#64748b;font-size:12px;line-height:1.5;margin:16px 0 0;">Changez ce mot de passe après votre première connexion.</p>
+        ${credentialsBlock}
         ${loginBlock || ''}
         <p style="color:#475569;font-size:12px;margin-top:28px;">— AVA Management / WorkSphere</p>
       </td>
@@ -116,7 +130,9 @@ export const handler = async (event) => {
 </body>
 </html>`
 
-  const text = `Bonjour ${prenom},\n\nVotre compte AVA Management a été créé.\n\nEmail : ${email}\nMot de passe temporaire : ${temporaryPassword}\n${loginUrl ? `\nConnexion : ${loginUrl}\n` : ''}\nChangez ce mot de passe après la première connexion.\n— AVA Management / WorkSphere`
+  const text = hasPassword
+    ? `Bonjour ${prenom},\n\nVotre compte AVA Management a été créé.\n\nEmail : ${email}\nMot de passe temporaire : ${temporaryPassword}\n${loginUrl ? `\nConnexion : ${loginUrl}\n` : ''}\nChangez ce mot de passe après la première connexion.\n— AVA Management / WorkSphere`
+    : `Bonjour ${prenom},\n\nVotre compte AVA Management a été créé.\n\nEmail de connexion : ${email}\n\nPremière connexion : ouvrez ${loginUrl || 'la page de connexion'}, puis utilisez « Mot de passe oublié » avec cette adresse e-mail pour définir votre mot de passe.\n\n— AVA Management / WorkSphere`
 
   let sendResult = { ok: false, error: 'Envoi non tenté.' }
   try {

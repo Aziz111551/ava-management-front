@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getEmployees, addEmployee, updateEmployee, deleteEmployee } from '../../services/api'
-import { generateTemporaryPassword, sendEmployeeWelcomeEmail } from '../../services/employeeWelcome'
+import { sendEmployeeWelcomeEmail } from '../../services/employeeWelcome'
 import { SectionTitle, Pill, Btn, Table, Modal, Field, inputStyle, Grid, StatCard } from '../../components/shared/UI'
 
 const MOCK = [
@@ -47,8 +47,7 @@ export default function Employes() {
       await updateEmployee(editId, form).catch(() => {})
       setEmployees(prev => prev.map(e => e._id === editId ? { ...e, ...form } : e))
     } else {
-      const temporaryPassword = generateTemporaryPassword(8)
-      const payload = { ...form, status: 'active', password: temporaryPassword }
+      const payload = { ...form, status: 'active' }
       let created
       try {
         const res = await addEmployee(payload)
@@ -66,24 +65,26 @@ export default function Employes() {
       }
       setEmployees((prev) => [...prev, newEmp])
 
-      const tempForEmail = created?.temporaryPassword || temporaryPassword
+      const apiTemp = created?.temporaryPassword || created?.tempPassword
       const loginUrl = `${window.location.origin}/login`
       try {
         const mail = await sendEmployeeWelcomeEmail({
           email: form.email.trim(),
           name: form.name.trim(),
-          temporaryPassword: tempForEmail,
+          ...(apiTemp ? { temporaryPassword: String(apiTemp) } : {}),
           loginUrl,
         })
         if (!mail.emailSent) {
-          alert(
-            `Employé créé.\n\nL’e-mail n’a pas été envoyé : ${mail.message || 'erreur inconnue'}\n\nMot de passe temporaire (à communiquer) :\n${tempForEmail}`,
-          )
+          const extra = apiTemp
+            ? `\n\nMot de passe temporaire (à communiquer) :\n${apiTemp}`
+            : '\n\nIndiquez au collaborateur d’ouvrir la page de connexion et d’utiliser « Mot de passe oublié » avec son e-mail.'
+          alert(`Employé créé.\n\nL’e-mail n’a pas été envoyé : ${mail.message || 'erreur inconnue'}${extra}`)
         }
       } catch (e) {
-        alert(
-          `Employé créé.\n\nErreur lors de l’envoi de l’e-mail : ${e.message || e}\n\nMot de passe temporaire (à communiquer) :\n${tempForEmail}`,
-        )
+        const extra = apiTemp
+          ? `\n\nMot de passe temporaire (à communiquer) :\n${apiTemp}`
+          : '\n\nIndiquez au collaborateur d’utiliser « Mot de passe oublié » sur la page de connexion.'
+        alert(`Employé créé.\n\nErreur lors de l’envoi de l’e-mail : ${e.message || e}${extra}`)
       }
     }
       setModal(null)

@@ -1,36 +1,21 @@
 const FN = '/.netlify/functions'
 
-/** Mot de passe lisible (style « PhffXzop ») pour la première connexion. */
-export function generateTemporaryPassword(length = 8) {
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
-  const lower = 'abcdefghijkmnpqrstuvwxyz'
-  const digits = '23456789'
-  const all = upper + lower + digits
-  const buf = new Uint8Array(Math.max(length, 8))
-  crypto.getRandomValues(buf)
-  let out = ''
-  out += upper[buf[0] % upper.length]
-  out += lower[buf[1] % lower.length]
-  out += digits[buf[2] % digits.length]
-  for (let i = 3; i < length; i++) {
-    out += all[buf[i] % all.length]
-  }
-  return out
-}
-
 /**
- * Envoie l’e-mail « vos accès » (Resend via Netlify). Ne crée pas le compte.
+ * Envoie l’e-mail de bienvenue (Resend via Netlify). Ne crée pas le compte.
+ * Si `temporaryPassword` est fourni (ex. renvoyé par l’API), le mail inclut les identifiants.
+ * Sinon : e-mail avec lien de connexion + consigne « mot de passe oublié ».
  */
 export async function sendEmployeeWelcomeEmail({ email, name, temporaryPassword, loginUrl }) {
+  const body = {
+    email,
+    name,
+    ...(temporaryPassword ? { temporaryPassword } : {}),
+    ...(loginUrl ? { loginUrl } : {}),
+  }
   const res = await fetch(`${FN}/send-employee-welcome`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email,
-      name,
-      temporaryPassword,
-      ...(loginUrl ? { loginUrl } : {}),
-    }),
+    body: JSON.stringify(body),
   })
   const text = await res.text()
   let data = {}
