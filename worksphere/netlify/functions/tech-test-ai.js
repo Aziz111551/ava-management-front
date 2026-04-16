@@ -1,4 +1,5 @@
 import { verifyJWT } from './lib/jwt.js'
+import { connectLambda, getStore } from '@netlify/blobs'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,36 @@ function json(statusCode, body) {
     statusCode,
     headers: { 'Content-Type': 'application/json', ...cors },
     body: JSON.stringify(body),
+  }
+}
+
+/** Seuil strict RH : score > 80 → Phase 2 (test physique) synchronisé via Netlify Blobs. */
+const AUTO_PHASE2_MIN = 80
+
+async function persistAutoPhase2(event, payload, score) {
+  const n = Number(score)
+  if (!Number.isFinite(n) || n <= AUTO_PHASE2_MIN) return
+  try {
+    connectLambda(event)
+    const store = getStore({ name: 'ws-tech-pipeline' })
+    const record = {
+      techTestScore: n,
+      stage: 'tech_passed',
+      email: payload.email,
+      name: payload.name,
+      cid: payload.cid || null,
+      updatedAt: new Date().toISOString(),
+    }
+    if (payload.cid) {
+      await store.setJSON(`cand-${payload.cid}`, record)
+    }
+    const em = String(payload.email || '')
+      .trim()
+      .toLowerCase()
+    const emKey = `email-${Buffer.from(em, 'utf8').toString('base64url')}`
+    await store.setJSON(emKey, record)
+  } catch (err) {
+    console.warn('[tech-test-ai] Netlify Blobs (sync RH)', err)
   }
 }
 
@@ -117,7 +148,12 @@ export const handler = async (event) => {
         return json(502, { ok: false, error: 'Évaluation IA illisible' })
       }
 
-      return json(200, { ok: true, result })
+      await persistAutoPhase2(event, payload, result.score)
+
+      const scoreNum = Number(result.score)
+      const autoPhase2 = Number.isFinite(scoreNum) && scoreNum > AUTO_PHASE2_MIN
+
+      return json(200, { ok: true, result, autoPhase2 })
     }
 
     return json(400, { ok: false, error: 'action inconnue' })

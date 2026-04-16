@@ -97,6 +97,8 @@ export const handler = async (event) => {
     .trim()
     .toLowerCase()
   const name = String(body.name || '').trim() || 'Candidat'
+  /** Id ligne candidats (webhook) — stocké dans le JWT pour enregistrer le score côté serveur. */
+  const candidatIdRaw = body.candidatId != null ? String(body.candidatId).trim() : ''
   /** Si true : ne pas envoyer l’e-mail « test seul » — utilisé avec send-phase1-bundle (Teams + test dans un seul mail). */
   const skipResendEmail = Boolean(body.skipResendEmail)
 
@@ -105,7 +107,9 @@ export const handler = async (event) => {
   }
 
   const exp = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
-  const token = signHS256({ sub: email, email, name, typ: 'tech_test', exp }, secret)
+  const payload = { sub: email, email, name, typ: 'tech_test', exp }
+  if (candidatIdRaw) payload.cid = candidatIdRaw
+  const token = signHS256(payload, secret)
 
   const base = siteBase(event)
   if (!base) {

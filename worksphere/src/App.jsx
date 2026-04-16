@@ -10,7 +10,7 @@ import RHLayout from './pages/rh/RHLayout'
 import Calendrier from './pages/rh/Calendrier'
 import Employes from './pages/rh/Employes'
 import Conges from './pages/rh/Conges'
-import { Reclamations, Candidats, Maladies } from './pages/rh/RhOther'
+import { Reclamations, Candidats, CandidatsPhase2, Maladies } from './pages/rh/RhOther'
 
 import EmployeeLayout from './pages/employee/EmployeeLayout'
 import EmployeeDashboard from './pages/employee/Dashboard'
@@ -99,6 +99,7 @@ export default function App() {
             <Route path="reclamations" element={<Reclamations />} />
             <Route path="conges" element={<Conges />} />
             <Route path="candidats" element={<Candidats />} />
+            <Route path="candidats-phase2" element={<CandidatsPhase2 />} />
             <Route path="maladies" element={<Maladies />} />
             <Route path="employes" element={<Employes />} />
           </Route>

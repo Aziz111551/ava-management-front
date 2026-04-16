@@ -40,5 +40,6 @@ export const handler = async (event) => {
     ok: true,
     email: payload.email,
     name: payload.name,
+    candidatId: payload.cid || null,
   })
 }

@@ -5,14 +5,60 @@ import { filterNotDeclined, setCandidatDecision } from '../../services/candidats
 import {
   getPhase1Rows,
   getPhase2Rows,
+  TECH_AUTO_PASS_MIN,
   setPipelineStage,
   setTechPassedWithSnapshot,
   markPhysicalSent,
   getStageFor,
 } from '../../services/candidatPipeline'
+import { fetchRemoteTechPipeline } from '../../services/pipelineRemote'
 import { issueTechnicalTestInvite } from '../../services/techTestInvite'
 import { sendPhase2PhysicalInvite, defaultMeetingDatetimeLocal } from '../../services/phase2PhysicalInvite'
 import { SectionTitle, Pill, Btn, Table, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
+
+function useRemotePipelineLookup() {
+  const [remoteLookup, setRemoteLookup] = useState(() => ({ byId: {}, byEmail: {} }))
+  const refreshRemote = useCallback(async () => {
+    const r = await fetchRemoteTechPipeline()
+    setRemoteLookup(r)
+  }, [])
+  useEffect(() => {
+    refreshRemote()
+    const id = window.setInterval(refreshRemote, 45000)
+    return () => clearInterval(id)
+  }, [refreshRemote])
+  return { remoteLookup, refreshRemote }
+}
+
+const techScoreColumn = {
+  key: '_techTestScore',
+  label: 'Test technique',
+  width: '120px',
+  render: (_, row) => {
+    const t = row._techTestScore
+    if (t == null || !Number.isFinite(Number(t))) {
+      return <span style={{ fontSize: '12px', color: 'var(--text3)' }}>—</span>
+    }
+    const n = Math.round(Number(t))
+    return (
+      <span
+        style={{
+          fontSize: '13px',
+          fontWeight: 700,
+          color: n > TECH_AUTO_PASS_MIN ? 'var(--green)' : 'var(--cyan)',
+        }}
+      >
+        {n}/100
+      </span>
+    )
+  },
+}
+
+function insertColumnAfter(columns, afterKey, col) {
+  const i = columns.findIndex((c) => c.key === afterKey)
+  if (i === -1) return [...columns, col]
+  return [...columns.slice(0, i + 1), col, ...columns.slice(i + 1)]
+}
 
 const candidateColumns = (opts) => {
   const { onPdf } = opts
@@ -191,19 +237,18 @@ export function Reclamations() {
 
 // ── CANDIDATS ─────────────────────────────────────────────────
 export function Candidats() {
+  const { remoteLookup, refreshRemote } = useRemotePipelineLookup()
   const [cands, setCands] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [processingId, setProcessingId] = useState(null)
   const [pipelineTick, setPipelineTick] = useState(0)
-  const [schedulePhase2Row, setSchedulePhase2Row] = useState(null)
-  const [meetingLocal, setMeetingLocal] = useState('')
-  const [teamsUrl, setTeamsUrl] = useState('')
-  const [rhNote, setRhNote] = useState('')
 
-  const phase1Rows = useMemo(() => getPhase1Rows(cands), [cands, pipelineTick])
-  const phase2Rows = useMemo(() => getPhase2Rows(cands), [cands, pipelineTick])
+  const phase1Rows = useMemo(
+    () => getPhase1Rows(cands, remoteLookup),
+    [cands, pipelineTick, remoteLookup],
+  )
 
   const refreshList = useCallback(async () => {
     setRefreshing(true)
@@ -211,12 +256,13 @@ export function Candidats() {
     try {
       const rows = await fetchEvaluations()
       setCands(filterNotDeclined(rows))
+      await refreshRemote()
     } catch (e) {
       setError(e?.message || 'Impossible de charger les évaluations')
     } finally {
       setRefreshing(false)
     }
-  }, [])
+  }, [refreshRemote])
 
   useEffect(() => {
     let cancelled = false
@@ -250,6 +296,7 @@ export function Candidats() {
       const inv = await issueTechnicalTestInvite({
         email,
         name: row.name?.trim() || 'Candidat',
+        candidatId: row._id,
       })
       setPipelineStage(row._id, 'tech_sent')
       setPipelineTick((t) => t + 1)
@@ -264,77 +311,21 @@ export function Candidats() {
       }
       alert(msg)
     } catch (err) {
-      alert(err.message || 'Impossible d’envoyer le test technique.')
+      alert(err.message || "Impossible d'envoyer le test technique.")
     } finally {
       setProcessingId(null)
     }
   }
 
-  const handleMarkTechPassed = (row) => {
+  const handleManualPhase2 = (row) => {
     if (
       !window.confirm(
-        'Marquer le test technique comme réussi ? Le candidat passera en Phase 2 (test physique / Teams).',
+        'Passer ce candidat en Phase 2 manuellement (sans score en ligne) ?',
       )
     )
       return
     setTechPassedWithSnapshot(row._id, row)
     setPipelineTick((t) => t + 1)
-  }
-
-  const openSchedulePhase2 = (row) => {
-    const email = (row.email || '').trim()
-    if (!email) {
-      alert('Adresse e-mail requise.')
-      return
-    }
-    setSchedulePhase2Row(row)
-    setMeetingLocal(defaultMeetingDatetimeLocal())
-    setTeamsUrl('')
-    setRhNote('')
-  }
-
-  const closeSchedulePhase2 = () => {
-    if (processingId) return
-    setSchedulePhase2Row(null)
-  }
-
-  const handleSendPhase2Email = async () => {
-    if (!schedulePhase2Row) return
-    const row = schedulePhase2Row
-    const email = (row.email || '').trim()
-    const name = row.name?.trim() || 'Candidat'
-    const url = teamsUrl.trim()
-    if (!url.startsWith('http')) {
-      alert('Collez un lien Teams valide (https://).')
-      return
-    }
-    if (!meetingLocal) {
-      alert('Choisissez la date et l’heure de l’entretien.')
-      return
-    }
-    const meetingAtIso = new Date(meetingLocal).toISOString()
-    setProcessingId(row._id)
-    try {
-      const res = await sendPhase2PhysicalInvite({
-        email,
-        candidateName: name,
-        meetingAt: meetingAtIso,
-        teamsUrl: url,
-        note: rhNote.trim() || undefined,
-      })
-      markPhysicalSent(row._id, { meetingAt: meetingAtIso, teamsUrl: url })
-      setPipelineTick((t) => t + 1)
-      setSchedulePhase2Row(null)
-      alert(
-        res.emailSent
-          ? res.message || 'Convocation Phase 2 envoyée.'
-          : `E-mail non envoyé : ${res.message || 'erreur Resend'}`,
-      )
-    } catch (err) {
-      alert(err.message || 'Impossible d’envoyer la convocation.')
-    } finally {
-      setProcessingId(null)
-    }
   }
 
   const handleDecline = (row) => {
@@ -352,7 +343,7 @@ export function Candidats() {
   const phase1Actions = {
     key: '_actions',
     label: 'Actions',
-    width: '240px',
+    width: '260px',
     render: (_, row) => {
       const busy = processingId === row._id
       const sent = getStageFor(row._id) === 'tech_sent'
@@ -381,11 +372,11 @@ export function Candidats() {
             small
             variant="ghost"
             disabled={busy}
-            title="Le candidat a réussi le test → passe en Phase 2"
-            onClick={() => handleMarkTechPassed(row)}
+            title="Cas exceptionnel : passage à la Phase 2 sans score auto"
+            onClick={() => handleManualPhase2(row)}
           >
             <i className="fa-solid fa-arrow-right" aria-hidden />
-            <span>OK test → Ph.2</span>
+            <span>Ph.2 manuel</span>
           </Btn>
           <Btn small variant="danger" disabled={busy} title="Refuser" onClick={() => handleDecline(row)}>
             <i className="fa-solid fa-xmark" aria-hidden />
@@ -394,6 +385,165 @@ export function Candidats() {
       )
     },
   }
+
+  return (
+    <div>
+      <Grid cols={2} gap={12}>
+        <StatCard label="Phase 1 — en cours" value={loading ? '…' : phase1Rows.length} color="var(--cyan2)" />
+        <StatCard label="Score évaluations (moy.)" value={loading ? '…' : avgPhase1} color="var(--green)" />
+      </Grid>
+
+      <SectionTitle
+        action={
+          <Btn
+            small
+            variant="ghost"
+            disabled={loading || refreshing}
+            onClick={refreshList}
+            title="Actualiser la liste et la sync test technique"
+            style={{ gap: '8px' }}
+          >
+            <i className={`fa-solid fa-arrows-rotate ${refreshing ? 'fa-spin' : ''}`} aria-hidden />
+            Refresh
+          </Btn>
+        }
+      >
+        Phase 1 — Test technique
+      </SectionTitle>
+      <p style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '860px', lineHeight: 1.55, marginBottom: '18px' }}>
+        Envoyez le lien du test en ligne. Si le candidat obtient un <strong>score supérieur à {TECH_AUTO_PASS_MIN}/100</strong> à
+        la correction IA, il apparaît automatiquement dans la page{' '}
+        <strong>Phase 2 — Test physique</strong> (menu gauche) avec son score affiché. Cas exceptionnel : bouton « Ph.2 manuel ».
+      </p>
+      {error && <div style={{ fontSize: '13px', color: 'var(--red)', marginBottom: '12px' }}>{error}</div>}
+
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text3)' }}>
+          <i className="fa-solid fa-spinner fa-spin" aria-hidden />
+          Chargement…
+        </div>
+      ) : (
+        <Table columns={[...candidateColumns({ onPdf: openPdf }), phase1Actions]} rows={phase1Rows} />
+      )}
+    </div>
+  )
+}
+
+// ── CANDIDATS PHASE 2 (test physique / Teams) ─────────────────
+export function CandidatsPhase2() {
+  const { remoteLookup, refreshRemote } = useRemotePipelineLookup()
+  const [cands, setCands] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState(null)
+  const [processingId, setProcessingId] = useState(null)
+  const [pipelineTick, setPipelineTick] = useState(0)
+  const [scheduleRow, setScheduleRow] = useState(null)
+  const [meetingLocal, setMeetingLocal] = useState('')
+  const [teamsUrl, setTeamsUrl] = useState('')
+  const [rhNote, setRhNote] = useState('')
+
+  const phase2Rows = useMemo(
+    () => getPhase2Rows(cands, remoteLookup),
+    [cands, pipelineTick, remoteLookup],
+  )
+
+  const refreshList = useCallback(async () => {
+    setRefreshing(true)
+    setError(null)
+    try {
+      const rows = await fetchEvaluations()
+      setCands(filterNotDeclined(rows))
+      await refreshRemote()
+    } catch (e) {
+      setError(e?.message || 'Impossible de charger les évaluations')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [refreshRemote])
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    fetchEvaluations()
+      .then((rows) => {
+        if (!cancelled) setCands(filterNotDeclined(rows))
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e?.message || 'Impossible de charger les évaluations')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const openPdf = (href) => window.open(href, '_blank', 'noopener,noreferrer')
+
+  const openSchedule = (row) => {
+    const email = (row.email || '').trim()
+    if (!email) {
+      alert('Adresse e-mail requise.')
+      return
+    }
+    setScheduleRow(row)
+    setMeetingLocal(defaultMeetingDatetimeLocal())
+    setTeamsUrl('')
+    setRhNote('')
+  }
+
+  const closeSchedule = () => {
+    if (processingId) return
+    setScheduleRow(null)
+  }
+
+  const handleSendPhase2Email = async () => {
+    if (!scheduleRow) return
+    const row = scheduleRow
+    const email = (row.email || '').trim()
+    const name = row.name?.trim() || 'Candidat'
+    const url = teamsUrl.trim()
+    if (!url.startsWith('http')) {
+      alert('Collez un lien Teams valide (https://).')
+      return
+    }
+    if (!meetingLocal) {
+      alert('Choisissez la date et l’heure de l’entretien.')
+      return
+    }
+    const meetingAtIso = new Date(meetingLocal).toISOString()
+    setProcessingId(row._id)
+    try {
+      const res = await sendPhase2PhysicalInvite({
+        email,
+        candidateName: name,
+        meetingAt: meetingAtIso,
+        teamsUrl: url,
+        note: rhNote.trim() || undefined,
+      })
+      markPhysicalSent(row._id, { meetingAt: meetingAtIso, teamsUrl: url })
+      setPipelineTick((t) => t + 1)
+      setScheduleRow(null)
+      alert(
+        res.emailSent
+          ? res.message || 'Convocation Phase 2 envoyée.'
+          : `E-mail non envoyé : ${res.message || 'erreur Resend'}`,
+      )
+    } catch (err) {
+      alert(err.message || "Impossible d'envoyer la convocation.")
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const phase2ColsBase = insertColumnAfter(
+    candidateColumns({ onPdf: openPdf }),
+    'position',
+    techScoreColumn,
+  )
 
   const phase2Actions = {
     key: '_actions',
@@ -408,7 +558,7 @@ export function Candidats() {
             variant="primary"
             disabled={busy}
             title="Envoyer date + lien Teams (test physique / entretien)"
-            onClick={() => openSchedulePhase2(row)}
+            onClick={() => openSchedule(row)}
           >
             {busy ? <i className="fa-solid fa-spinner fa-spin" aria-hidden /> : <i className="fa-brands fa-microsoft" aria-hidden />}
             <span>Teams</span>
@@ -420,10 +570,9 @@ export function Candidats() {
 
   return (
     <div>
-      <Grid cols={3} gap={12}>
-        <StatCard label="Phase 1 — en cours" value={loading ? '…' : phase1Rows.length} color="var(--cyan2)" />
-        <StatCard label="Phase 2 — test physique (Teams)" value={loading ? '…' : phase2Rows.length} color="var(--amber)" />
-        <StatCard label="Score moyen (Ph.1)" value={loading ? '…' : avgPhase1} color="var(--green)" />
+      <Grid cols={2} gap={12}>
+        <StatCard label="Phase 2 — à convoquer" value={loading ? '…' : phase2Rows.length} color="var(--amber)" />
+        <StatCard label="Passage auto depuis le test" value={`> ${TECH_AUTO_PASS_MIN} / 100`} color="var(--cyan2)" />
       </Grid>
 
       <SectionTitle
@@ -441,13 +590,11 @@ export function Candidats() {
           </Btn>
         }
       >
-        Recrutement — Phase 1 &amp; 2
+        Phase 2 — Test physique (Teams)
       </SectionTitle>
-      <p style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '860px', lineHeight: 1.55, marginBottom: '18px' }}>
-        <strong>Phase 1 — Test technique :</strong> envoyez le lien du test en ligne ; lorsque le candidat a réussi, cliquez « OK test → Ph.2 ».
-        <br />
-        <strong>Phase 2 — Test physique / Teams :</strong> le candidat apparaît ci-dessous ; planifiez la date et le lien Teams, puis envoyez la
-        convocation.
+      <p style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '880px', lineHeight: 1.55, marginBottom: '18px' }}>
+        Candidats ayant obtenu plus de {TECH_AUTO_PASS_MIN}/100 au test technique en ligne (sync Netlify), ou passage manuel depuis
+        la Phase 1. Colonne <strong>Test technique</strong> : score IA obtenu sur l’exercice.
       </p>
       {error && <div style={{ fontSize: '13px', color: 'var(--red)', marginBottom: '12px' }}>{error}</div>}
 
@@ -456,33 +603,22 @@ export function Candidats() {
           <i className="fa-solid fa-spinner fa-spin" aria-hidden />
           Chargement…
         </div>
+      ) : phase2Rows.length === 0 ? (
+        <p style={{ fontSize: '13px', color: 'var(--text3)' }}>
+          Aucun candidat en Phase 2. Attendez qu’un candidat termine le test avec un score &gt; {TECH_AUTO_PASS_MIN}, ou utilisez « Ph.2
+          manuel » sur la Phase 1.
+        </p>
       ) : (
-        <>
-          <div style={{ marginTop: '8px' }}>
-            <SectionTitle>Phase 1 — Test technique</SectionTitle>
-          </div>
-          <Table columns={[...candidateColumns({ onPdf: openPdf }), phase1Actions]} rows={phase1Rows} />
-
-          <div style={{ marginTop: '28px' }}>
-            <SectionTitle>Phase 2 — Test physique (entretien Teams)</SectionTitle>
-          </div>
-          {phase2Rows.length === 0 ? (
-            <p style={{ fontSize: '13px', color: 'var(--text3)', marginBottom: '12px' }}>
-              Aucun candidat en Phase 2 pour l’instant. Validez d’abord la réussite du test technique en Phase 1.
-            </p>
-          ) : (
-            <Table columns={[...candidateColumns({ onPdf: openPdf }), phase2Actions]} rows={phase2Rows} />
-          )}
-        </>
+        <Table columns={[...phase2ColsBase, phase2Actions]} rows={phase2Rows} />
       )}
 
-      <Modal open={!!schedulePhase2Row} onClose={closeSchedulePhase2} title="Phase 2 — Convocation Teams">
-        {schedulePhase2Row && (
+      <Modal open={!!scheduleRow} onClose={closeSchedule} title="Phase 2 — Convocation Teams">
+        {scheduleRow && (
           <>
             <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '14px', lineHeight: 1.5 }}>
-              <strong>{schedulePhase2Row.name}</strong>
+              <strong>{scheduleRow.name}</strong>
               <br />
-              <span style={{ color: 'var(--text3)' }}>{schedulePhase2Row.email}</span>
+              <span style={{ color: 'var(--text3)' }}>{scheduleRow.email}</span>
             </p>
             <Field label="Date et heure (entretien / test physique)">
               <input
@@ -510,7 +646,7 @@ export function Candidats() {
               />
             </Field>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
-              <Btn variant="ghost" onClick={closeSchedulePhase2} disabled={!!processingId}>
+              <Btn variant="ghost" onClick={closeSchedule} disabled={!!processingId}>
                 Annuler
               </Btn>
               <Btn onClick={handleSendPhase2Email} disabled={!!processingId}>

@@ -13,7 +13,8 @@ const navItems = [
   {
     label: 'RECRUITMENT',
     items: [
-      { path: '/rh/candidats',    icon: 'fa-solid fa-user-group', label: 'Phase 1 Candidates' },
+      { path: '/rh/candidats', icon: 'fa-solid fa-laptop-code', label: 'Phase 1 — Test technique' },
+      { path: '/rh/candidats-phase2', icon: 'fa-solid fa-person-running', label: 'Phase 2 — Test physique' },
     ],
   },
   {
@@ -29,7 +30,8 @@ const titles = {
   '/rh/calendrier':   'Calendar',
   '/rh/reclamations': 'Complaints & Issues',
   '/rh/conges':       'Leave Management',
-  '/rh/candidats':    'Accepted Candidates — Phase 1',
+  '/rh/candidats':         'Phase 1 — Test technique',
+  '/rh/candidats-phase2':  'Phase 2 — Test physique (Teams)',
   '/rh/maladies':     'Sick Leave',
   '/rh/employes':     'Employee List',
 }

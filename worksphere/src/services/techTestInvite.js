@@ -20,14 +20,20 @@ function bodyToMessage(text, status) {
 }
 
 /**
- * @param {{ email: string, name: string, skipResendEmail?: boolean }} opts
+ * @param {{ email: string, name: string, skipResendEmail?: boolean, candidatId?: string }} opts
+ * candidatId : id ligne évaluations (webhook) — inclus dans le JWT pour sync Phase 2 auto après le test.
  * skipResendEmail : ne pas envoyer le mail « test seul » (utilisé avec send-phase1-bundle).
  */
-export async function issueTechnicalTestInvite({ email, name, skipResendEmail = false }) {
+export async function issueTechnicalTestInvite({ email, name, skipResendEmail = false, candidatId }) {
   const res = await fetch(`${FN}/issue-tech-test`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, name, ...(skipResendEmail ? { skipResendEmail: true } : {}) }),
+    body: JSON.stringify({
+      email,
+      name,
+      ...(candidatId != null && String(candidatId).trim() !== '' ? { candidatId: String(candidatId).trim() } : {}),
+      ...(skipResendEmail ? { skipResendEmail: true } : {}),
+    }),
   })
   const text = await res.text()
   let data = {}

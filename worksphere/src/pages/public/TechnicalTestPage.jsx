@@ -23,6 +23,7 @@ export default function TechnicalTestPage() {
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [evaluating, setEvaluating] = useState(false)
   const [result, setResult] = useState(null)
+  const [autoPhase2, setAutoPhase2] = useState(false)
   const [failReason, setFailReason] = useState(null)
 
   const stepRef = useRef(step)
@@ -157,6 +158,7 @@ export default function TechnicalTestPage() {
         return
       }
       setResult(data.result)
+      setAutoPhase2(Boolean(data.autoPhase2))
       setStep('done')
     } finally {
       setEvaluating(false)
@@ -399,6 +401,24 @@ export default function TechnicalTestPage() {
         <p style={{ color: result.passed ? 'var(--green)' : 'var(--amber)', fontWeight: 600 }}>
           {result.passed ? 'Réussi' : 'À retravailler'}
         </p>
+        {autoPhase2 && (
+          <p
+            style={{
+              marginTop: '14px',
+              padding: '12px 14px',
+              borderRadius: '8px',
+              background: 'rgba(0,230,118,0.08)',
+              border: '1px solid rgba(0,230,118,0.25)',
+              color: 'var(--green)',
+              fontWeight: 600,
+              fontSize: '14px',
+              lineHeight: 1.5,
+            }}
+          >
+            Votre score est supérieur à 80/100 : vous passez automatiquement à l’étape suivante (test physique / entretien). Le service RH
+            pourra vous convoquer via e-mail (Teams).
+          </p>
+        )}
         <p style={{ color: 'var(--text2)', marginTop: '16px', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
           {result.feedbackFr}
         </p>
