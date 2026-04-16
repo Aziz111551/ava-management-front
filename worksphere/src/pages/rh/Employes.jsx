@@ -65,8 +65,13 @@ export default function Employes() {
       }
       setEmployees((prev) => [...prev, newEmp])
 
-      const apiTemp = created?.temporaryPassword || created?.tempPassword
-      const loginUrl = `${window.location.origin}/login`
+      const apiTemp =
+        created?.temporaryPassword ||
+        created?.tempPassword ||
+        created?.plainPassword ||
+        created?.generatedPassword ||
+        created?.initialPassword
+      const loginUrl = `${window.location.origin}/login?email=${encodeURIComponent(form.email.trim())}`
       try {
         const mail = await sendEmployeeWelcomeEmail({
           email: form.email.trim(),

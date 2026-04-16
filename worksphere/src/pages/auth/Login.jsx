@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { login as loginAPI, API_BASE_URL } from '../../services/api'
 import { AuroraBackdrop, StaggerReveal, StaggerItem } from '../../components/react-bits'
@@ -11,6 +11,17 @@ export default function Login() {
   const [error, setError] = useState('')
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    const q = searchParams.get('email')
+    if (!q) return
+    try {
+      setEmail(decodeURIComponent(q.trim()))
+    } catch {
+      setEmail(q.trim())
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -89,7 +100,7 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="on">
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: 'var(--text3)', marginBottom: '8px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 Email address
@@ -100,10 +111,12 @@ export default function Login() {
                   fontSize: '14px', color: 'var(--text3)', pointerEvents: 'none',
                 }} />
                 <input
+                  name="email"
+                  id="login-email"
                   type="email" value={email} required
                   onChange={e => setEmail(e.target.value)}
                   placeholder="vous@company.com"
-                  autoComplete="email"
+                  autoComplete="username"
                   style={{
                     width: '100%', padding: '12px 16px 12px 42px',
                     background: 'rgba(255,255,255,0.04)',
@@ -128,6 +141,8 @@ export default function Login() {
                   fontSize: '13px', color: 'var(--text3)', pointerEvents: 'none',
                 }} />
                 <input
+                  name="password"
+                  id="login-password"
                   type="password" value={password} required
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
