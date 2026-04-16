@@ -84,49 +84,67 @@ export const handler = async (event) => {
     ? 'AVA Management — vos accès ont été créés'
     : 'AVA Management — votre compte a été créé'
 
-  const loginBlock =
-    loginUrl &&
-    `<p style="margin:20px 0 0;font-size:13px;"><a href="${escapeHtml(loginUrl)}" style="display:inline-block;padding:12px 20px;background:#14b8a6;color:#0f172a;text-decoration:none;border-radius:8px;font-weight:600;">Ouvrir la page de connexion</a></p>`
+  const loginHref = loginUrl ? escapeHtml(loginUrl) : ''
 
-  const credentialsBlock = hasPassword
-    ? `
-        <p style="color:#cbd5e1;font-size:14px;line-height:1.6;margin:0 0 20px;">Votre compte AVA Management a été créé. Voici vos identifiants :</p>
-        <div style="background:#0f172a;border-radius:12px;padding:20px;border:1px solid #334155;">
-          <div style="color:#64748b;font-size:12px;margin-bottom:6px;">Email</div>
-          <div style="color:#38bdf8;font-size:15px;word-break:break-all;margin-bottom:16px;">${escapeHtml(email)}</div>
-          <div style="color:#64748b;font-size:12px;margin-bottom:6px;">Mot de passe temporaire</div>
-          <div style="color:#14b8a6;font-size:22px;font-weight:700;letter-spacing:0.04em;font-family:ui-monospace,monospace;">${escapeHtml(temporaryPassword)}</div>
-        </div>
-        <p style="color:#64748b;font-size:12px;line-height:1.5;margin:16px 0 0;">Changez ce mot de passe après votre première connexion.</p>
-        `
-    : `
-        <p style="color:#cbd5e1;font-size:14px;line-height:1.6;margin:0 0 16px;">Votre compte AVA Management a été créé avec l’adresse ci-dessous.</p>
-        <div style="background:#0f172a;border-radius:12px;padding:20px;border:1px solid #334155;margin-bottom:16px;">
-          <div style="color:#64748b;font-size:12px;margin-bottom:6px;">Email de connexion</div>
-          <div style="color:#38bdf8;font-size:15px;word-break:break-all;">${escapeHtml(email)}</div>
-        </div>
-        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 12px;"><strong>Première connexion :</strong> ouvrez le lien ci-dessous, puis utilisez <strong>« Mot de passe oublié »</strong> avec cette même adresse e-mail pour recevoir un lien et définir votre mot de passe.</p>
-        `
+  /** HTML compatible clients / aperçus (Messenger, etc.) : table + texte lisible, pas que des divs. */
+  const coreRows = hasPassword
+    ? `<tr><td style="padding:0 0 14px;font-size:15px;line-height:1.55;color:#e2e8f0;font-family:Arial,Helvetica,sans-serif;">
+          Votre compte AVA Management est prêt. Identifiants :
+        </td></tr>
+        <tr><td style="padding:0 0 8px;font-size:14px;line-height:1.5;color:#94a3b8;font-family:Arial,Helvetica,sans-serif;">Email</td></tr>
+        <tr><td style="padding:0 0 16px;font-size:16px;line-height:1.45;color:#38bdf8;font-family:Arial,Helvetica,sans-serif;word-break:break-all;">
+          ${escapeHtml(email)}
+        </td></tr>
+        <tr><td style="padding:0 0 8px;font-size:14px;line-height:1.5;color:#94a3b8;font-family:Arial,Helvetica,sans-serif;">Mot de passe temporaire</td></tr>
+        <tr><td style="padding:0 0 18px;font-size:22px;line-height:1.3;color:#14b8a6;font-weight:bold;font-family:ui-monospace,Consolas,monospace;">
+          ${escapeHtml(temporaryPassword)}
+        </td></tr>
+        <tr><td style="padding:0 0 16px;font-size:13px;line-height:1.5;color:#64748b;font-family:Arial,Helvetica,sans-serif;">
+          Changez ce mot de passe après la première connexion.
+        </td></tr>`
+    : `<tr><td style="padding:0 0 14px;font-size:15px;line-height:1.55;color:#e2e8f0;font-family:Arial,Helvetica,sans-serif;">
+          Votre compte AVA Management a été créé.
+        </td></tr>
+        <tr><td style="padding:0 0 8px;font-size:14px;line-height:1.5;color:#94a3b8;font-family:Arial,Helvetica,sans-serif;">Email de connexion</td></tr>
+        <tr><td style="padding:0 0 16px;font-size:16px;line-height:1.45;color:#38bdf8;font-family:Arial,Helvetica,sans-serif;word-break:break-all;">
+          ${escapeHtml(email)}
+        </td></tr>
+        <tr><td style="padding:0 0 18px;font-size:14px;line-height:1.55;color:#cbd5e1;font-family:Arial,Helvetica,sans-serif;">
+          Première connexion : ouvrez le lien ci-dessous, puis utilisez « Mot de passe oublié » avec cette adresse e-mail pour définir votre mot de passe.
+        </td></tr>`
 
-  const html = `
-<!DOCTYPE html>
+  const loginRow =
+    loginHref &&
+    `<tr><td style="padding:8px 0 0;">
+        <a href="${loginHref}" style="display:inline-block;padding:14px 22px;background:#14b8a6;color:#0f172a;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Ouvrir la page de connexion</a>
+      </td></tr>
+      <tr><td style="padding:12px 0 0;font-size:12px;line-height:1.45;color:#64748b;font-family:Arial,Helvetica,sans-serif;word-break:break-all;">
+        ${loginHref}
+      </td></tr>`
+
+  const html = `<!DOCTYPE html>
 <html>
-<body style="margin:0;padding:24px;background:#0b1220;font-family:system-ui,-apple-system,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;margin:0 auto;">
-    <tr>
-      <td style="background:#111827;border-radius:16px;padding:32px;border:1px solid #1e293b;">
-        <div style="text-align:center;margin-bottom:24px;">
-          <div style="width:48px;height:48px;margin:0 auto 12px;background:#14b8a6;border-radius:10px;line-height:48px;font-size:22px;font-weight:700;color:#0f172a;">A</div>
-          <div style="color:#f8fafc;font-size:18px;font-weight:600;">AVA Management</div>
-        </div>
-        <h1 style="color:#f8fafc;font-size:18px;font-weight:600;margin:0 0 12px;">${hasPassword ? 'Vos accès ont été créés' : 'Votre compte a été créé'}</h1>
-        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 16px;">Bonjour ${escapeHtml(prenom)},</p>
-        ${credentialsBlock}
-        ${loginBlock || ''}
-        <p style="color:#475569;font-size:12px;margin-top:28px;">— AVA Management / WorkSphere</p>
-      </td>
-    </tr>
-  </table>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:20px;background:#0b1220;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;margin:0 auto;background:#111827;border-radius:16px;border:1px solid #1e293b;">
+<tr><td style="padding:28px 24px 8px;text-align:center;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>
+    <td style="width:48px;height:48px;background:#14b8a6;border-radius:10px;text-align:center;vertical-align:middle;font-size:22px;font-weight:bold;color:#0f172a;font-family:Arial,Helvetica,sans-serif;">A</td>
+  </tr></table>
+  <p style="margin:12px 0 0;font-size:18px;font-weight:bold;color:#f8fafc;font-family:Arial,Helvetica,sans-serif;">AVA Management</p>
+</td></tr>
+<tr><td style="padding:8px 24px 4px;">
+  <p style="margin:0;font-size:18px;font-weight:bold;color:#f8fafc;font-family:Arial,Helvetica,sans-serif;">${hasPassword ? 'Vos accès ont été créés' : 'Votre compte a été créé'}</p>
+</td></tr>
+<tr><td style="padding:12px 24px 8px;">
+  <p style="margin:0;font-size:15px;line-height:1.5;color:#94a3b8;font-family:Arial,Helvetica,sans-serif;">Bonjour ${escapeHtml(prenom)},</p>
+</td></tr>
+${coreRows}
+${loginRow || ''}
+<tr><td style="padding:20px 24px 28px;">
+  <p style="margin:0;font-size:12px;color:#64748b;font-family:Arial,Helvetica,sans-serif;">— AVA Management / WorkSphere</p>
+</td></tr>
+</table>
 </body>
 </html>`
 
