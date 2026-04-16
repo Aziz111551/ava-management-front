@@ -13,11 +13,16 @@ function loadMap() {
   }
 }
 
+/** Pour `candidatPipeline.js` — refus uniquement masque la ligne. */
+export function loadDecisionMap() {
+  return loadMap()
+}
+
 export function getCandidatDecision(id) {
   return loadMap()[id] ?? null
 }
 
-/** @param {'accepted' | 'declined'} action */
+/** *******@param {'accepted' | 'declined'} action */
 export function setCandidatDecision(id, action) {
   const m = loadMap()
   m[id] = action
@@ -28,6 +33,13 @@ export function setCandidatDecision(id, action) {
   }
 }
 
+/** Exclut uniquement les **refus**. Les anciennes entrées `accepted` ne masquent plus la ligne. */
+export function filterNotDeclined(rows) {
+  const m = loadMap()
+  return rows.filter((r) => m[r._id] !== 'declined')
+}
+
+/** @deprecated préférer {@link filterNotDeclined} + pipeline Phase 1/2 */
 export function filterUnresolvedCandidats(rows) {
   const m = loadMap()
   return rows.filter((r) => !m[r._id])
