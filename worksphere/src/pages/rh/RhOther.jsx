@@ -6,6 +6,10 @@ import {
   setCandidatDecision,
 } from '../../services/candidatsPhase1'
 import { issueTechnicalTestInvite } from '../../services/techTestInvite'
+import {
+  sendPhase1AcceptanceBundle,
+  defaultMeetingDatetimeLocal,
+} from '../../services/phase1InviteBundle'
 import { SectionTitle, Pill, Btn, Table, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
 
 // ── RECLAMATIONS ──────────────────────────────────────────────
@@ -78,6 +82,10 @@ export function Candidats() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [processingId, setProcessingId] = useState(null)
+  const [scheduleRow, setScheduleRow] = useState(null)
+  const [meetingLocal, setMeetingLocal] = useState('')
+  const [teamsUrl, setTeamsUrl] = useState('')
+  const [rhNote, setRhNote] = useState('')
 
   const refreshList = useCallback(async () => {
     setRefreshing(true)
@@ -109,32 +117,68 @@ export function Candidats() {
     return () => { cancelled = true }
   }, [])
 
-  const handleAccept = async (row) => {
+  const openSchedule = (row) => {
     const email = (row.email || '').trim()
     if (!email) {
-      alert('Adresse e-mail requise pour envoyer le lien du test technique.')
+      alert('Adresse e-mail requise pour envoyer la convocation.')
       return
     }
+    setScheduleRow(row)
+    setMeetingLocal(defaultMeetingDatetimeLocal())
+    setTeamsUrl('')
+    setRhNote('')
+  }
+
+  const closeSchedule = () => {
+    if (processingId) return
+    setScheduleRow(null)
+  }
+
+  const handleSendBundle = async () => {
+    if (!scheduleRow) return
+    const row = scheduleRow
+    const email = (row.email || '').trim()
+    const name = row.name?.trim() || 'Candidat'
+    const url = teamsUrl.trim()
+    if (!url.startsWith('http')) {
+      alert('Collez un lien Teams valide (commençant par https://).')
+      return
+    }
+    if (!meetingLocal) {
+      alert('Choisissez la date et l’heure de l’entretien.')
+      return
+    }
+    const meetingAtIso = new Date(meetingLocal).toISOString()
     setProcessingId(row._id)
     try {
       const inv = await issueTechnicalTestInvite({
         email,
-        name: row.name?.trim() || 'Candidat',
+        name,
+        skipResendEmail: true,
       })
-      let msg = inv.emailSent
-        ? (inv.message || `E-mail envoyé à ${email} (test technique).`)
-        : `${inv.message ? `${inv.message}\n\n` : ''}Lien :\n${inv.inviteUrl}`
+      const bundle = await sendPhase1AcceptanceBundle({
+        email,
+        candidateName: name,
+        meetingAt: meetingAtIso,
+        teamsUrl: url,
+        inviteUrl: inv.inviteUrl,
+        note: rhNote.trim() || undefined,
+      })
+      let msg = bundle.emailSent
+        ? bundle.message || 'E-mail envoyé au candidat (Teams + test technique).'
+        : `E-mail non envoyé : ${bundle.message || 'erreur Resend'}\n\nLien test (copier si besoin) :\n${inv.inviteUrl}`
       try {
         await navigator.clipboard.writeText(inv.inviteUrl)
-        msg += '\n\n(Lien copié dans le presse-papiers.)'
+        msg += '\n\n(Lien test copié dans le presse-papiers.)'
       } catch {
         /* ignore */
       }
       setCandidatDecision(row._id, 'accepted')
       setCands((prev) => prev.filter((c) => c._id !== row._id))
+      setScheduleRow(null)
       alert(msg)
     } catch (err) {
-      alert(err.message || 'Impossible de générer le lien du test.')
+      alert(err.message || 'Impossible d’envoyer la convocation.')
     } finally {
       setProcessingId(null)
     }
@@ -178,8 +222,11 @@ export function Candidats() {
           </Btn>
         }
       >
-        Accepted Candidates — Phase 1
+        Candidats acceptés — Phase 1 (Teams + test technique)
       </SectionTitle>
+      <p style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '720px', lineHeight: 1.5, marginBottom: '14px' }}>
+        Liste issue du webhook d’évaluations. Pour chaque candidat : planifiez la réunion Teams (date / lien) puis envoyez un e-mail unique avec le créneau, le lien Teams et le lien du test technique en ligne.
+      </p>
       {error && (
         <div style={{ fontSize: '13px', color: 'var(--red)', marginBottom: '12px' }}>{error}</div>
       )}
@@ -231,7 +278,7 @@ export function Candidats() {
             {
               key: '_actions',
               label: 'Actions',
-              width: '148px',
+              width: '180px',
               render: (_, row) => {
                 const busy = processingId === row._id
                 return (
@@ -240,15 +287,15 @@ export function Candidats() {
                       small
                       variant="primary"
                       disabled={busy}
-                      title="Accepter — envoie le lien du test technique (sans créer d’employé)"
-                      onClick={() => handleAccept(row)}
+                      title="Planifier Teams + envoyer test technique par e-mail"
+                      onClick={() => openSchedule(row)}
                     >
                       {busy ? (
                         <i className="fa-solid fa-spinner fa-spin" aria-hidden />
                       ) : (
                         <i className="fa-solid fa-check" aria-hidden />
                       )}
-                      <span>Accept</span>
+                      <span>Accepter</span>
                     </Btn>
                     <Btn
                       small
@@ -268,6 +315,60 @@ export function Candidats() {
           rows={cands}
         />
       )}
+
+      <Modal
+        open={!!scheduleRow}
+        onClose={closeSchedule}
+        title="Convocation — Teams + test technique"
+      >
+        {scheduleRow && (
+          <>
+            <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '14px', lineHeight: 1.5 }}>
+              <strong>{scheduleRow.name}</strong>
+              <br />
+              <span style={{ color: 'var(--text3)' }}>{scheduleRow.email}</span>
+            </p>
+            <Field label="Date et heure de l’entretien (Teams)">
+              <input
+                type="datetime-local"
+                style={inputStyle}
+                value={meetingLocal}
+                onChange={(e) => setMeetingLocal(e.target.value)}
+              />
+            </Field>
+            <Field label="Lien de la réunion Teams">
+              <input
+                type="url"
+                style={inputStyle}
+                value={teamsUrl}
+                onChange={(e) => setTeamsUrl(e.target.value)}
+                placeholder="https://teams.microsoft.com/l/meetup-join/…"
+              />
+            </Field>
+            <Field label="Notes (optionnel)">
+              <textarea
+                style={{ ...inputStyle, minHeight: '72px', resize: 'vertical' }}
+                value={rhNote}
+                onChange={(e) => setRhNote(e.target.value)}
+                placeholder="Consignes pour le candidat…"
+              />
+            </Field>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+              <Btn variant="ghost" onClick={closeSchedule} disabled={!!processingId}>
+                Annuler
+              </Btn>
+              <Btn onClick={handleSendBundle} disabled={!!processingId}>
+                {processingId ? (
+                  <i className="fa-solid fa-spinner fa-spin" aria-hidden />
+                ) : (
+                  <i className="fa-regular fa-paper-plane" aria-hidden />
+                )}
+                Envoyer l’e-mail au candidat
+              </Btn>
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

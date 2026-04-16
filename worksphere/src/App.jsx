@@ -3,6 +3,8 @@ import { motion } from 'motion/react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 import Login from './pages/auth/Login'
+import FirstPassword from './pages/auth/FirstPassword'
+import MustChangePasswordRedirect from './components/MustChangePasswordRedirect'
 
 import RHLayout from './pages/rh/RHLayout'
 import Calendrier from './pages/rh/Calendrier'
@@ -49,6 +51,15 @@ function ProtectedRoute({ children, requiredRole }) {
   return children
 }
 
+function Gate({ children }) {
+  return (
+    <>
+      <MustChangePasswordRedirect />
+      {children}
+    </>
+  )
+}
+
 function RootRedirect() {
   const { user, loading } = useAuth()
   if (loading) return null
@@ -64,13 +75,23 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
+          <Route
+            path="/first-password"
+            element={
+              <ProtectedRoute>
+                <FirstPassword />
+              </ProtectedRoute>
+            }
+          />
           {/* Test technique public (lien signé par fonction Netlify) */}
           <Route path="/technical-test" element={<TechnicalTestPage />} />
 
           {/* RH ROUTES */}
           <Route path="/rh" element={
             <ProtectedRoute requiredRole="rh">
-              <RHLayout />
+              <Gate>
+                <RHLayout />
+              </Gate>
             </ProtectedRoute>
           }>
             <Route index element={<Navigate to="/rh/calendrier" replace />} />
@@ -85,7 +106,9 @@ export default function App() {
           {/* EMPLOYEE ROUTES */}
           <Route path="/employee" element={
             <ProtectedRoute requiredRole="employee">
-              <EmployeeLayout />
+              <Gate>
+                <EmployeeLayout />
+              </Gate>
             </ProtectedRoute>
           }>
             <Route index element={<Navigate to="/employee/dashboard" replace />} />

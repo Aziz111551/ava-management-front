@@ -30,6 +30,10 @@ export default function Login() {
     try {
       const { data } = await loginAPI(email, password)
       login(data.user, data.token)
+      if (data.user?.mustChangePassword) {
+        navigate('/first-password', { replace: true })
+        return
+      }
       if (data.user.role === 'rh') navigate('/rh')
       else navigate('/employee')
     } catch (err) {

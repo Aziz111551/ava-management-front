@@ -97,6 +97,8 @@ export const handler = async (event) => {
     .trim()
     .toLowerCase()
   const name = String(body.name || '').trim() || 'Candidat'
+  /** Si true : ne pas envoyer l’e-mail « test seul » — utilisé avec send-phase1-bundle (Teams + test dans un seul mail). */
+  const skipResendEmail = Boolean(body.skipResendEmail)
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json(400, { ok: false, error: 'E-mail invalide' })
@@ -115,6 +117,16 @@ export const handler = async (event) => {
   }
 
   const inviteUrl = `${base}/technical-test?t=${encodeURIComponent(token)}`
+
+  if (skipResendEmail) {
+    return json(200, {
+      ok: true,
+      token,
+      inviteUrl,
+      emailSent: false,
+      message: 'Lien test technique généré (e-mail regroupé Phase 1).',
+    })
+  }
 
   const subject = 'AVA Management — test technique (prochaine étape)'
   const html = `

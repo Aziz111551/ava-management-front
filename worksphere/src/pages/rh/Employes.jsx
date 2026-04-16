@@ -3,21 +3,15 @@ import { getEmployees, addEmployee, updateEmployee, deleteEmployee } from '../..
 import { sendEmployeeWelcomeEmail } from '../../services/employeeWelcome'
 import { SectionTitle, Pill, Btn, Table, Modal, Field, inputStyle, Grid, StatCard } from '../../components/shared/UI'
 
-const MOCK = [
-  { _id: '1', name: 'Ali Ben Salah', email: 'ali@company.com', department: 'Engineering', role: 'employee', employeeType: 'Developer', status: 'active', joinDate: '2023-03-15' },
-  { _id: '2', name: 'Sara Mzali', email: 'sara@company.com', department: 'Marketing', role: 'employee', employeeType: 'Marketing', status: 'active', joinDate: '2022-09-01' },
-  { _id: '3', name: 'Karim Jlassi', email: 'karim@company.com', department: 'Commercial', role: 'employee', employeeType: 'Commercial', status: 'leave', joinDate: '2021-06-10' },
-  { _id: '4', name: 'Nour Hammami', email: 'nour@company.com', department: 'HR', role: 'rh', employeeType: 'HR', status: 'sick', joinDate: '2020-01-20' },
-  { _id: '5', name: 'Asma Cherni', email: 'asma@company.com', department: 'Engineering', role: 'employee', employeeType: 'Developer', status: 'active', joinDate: '2023-09-01' },
-]
-
 const statusLabel = { active: { label: 'Active', type: 'green' }, leave: { label: 'On Leave', type: 'amber' }, sick: { label: 'Sick', type: 'red' } }
 /** Default form for new employees — status is always `active` (no Statut field on add). */
 const EMPTY = { name: '', email: '', department: '', employeeType: 'Developer', role: 'employee', status: 'active', joinDate: '' }
 const TYPES = ['Developer', 'Sales', 'Marketing', 'Manager', 'HR', 'Designer', 'Accountant']
 
 export default function Employes() {
-  const [employees, setEmployees] = useState(MOCK)
+  const [employees, setEmployees] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
   const [modal, setModal] = useState(null) // null | 'add' | 'edit'
   const [form, setForm] = useState(EMPTY)
   const [editId, setEditId] = useState(null)
@@ -25,7 +19,22 @@ export default function Employes() {
   const [filterStatus, setFilterStatus] = useState('all')
 
   useEffect(() => {
-    const load = () => getEmployees().then((r) => setEmployees(r.data)).catch(() => {})
+    const load = () => {
+      setFetchError(null)
+      setLoading(true)
+      return getEmployees()
+        .then((r) => setEmployees(Array.isArray(r.data) ? r.data : []))
+        .catch((err) => {
+          const msg =
+            err?.response?.data?.message ||
+            (err?.message?.includes('Network') || !err?.response
+              ? 'API injoignable ou CORS : sur Nest, autorisez l’origine Netlify (ex. https://votre-site.netlify.app) dans enableCors.'
+              : err.message || 'Impossible de charger les employés.')
+          setFetchError(msg)
+          setEmployees([])
+        })
+        .finally(() => setLoading(false))
+    }
     load()
     const onRefresh = () => load()
     window.addEventListener('ws-refresh-employees', onRefresh)
@@ -106,15 +115,32 @@ export default function Employes() {
   return (
     <div>
       <Grid cols={4} gap={12}>
-        <StatCard label="Total Employees" value={employees.length} color="var(--cyan2)" />
-        <StatCard label="Active" value={counts.active} color="var(--green)" />
-        <StatCard label="On Leave" value={counts.leave} color="var(--amber)" />
-        <StatCard label="Sick" value={counts.sick} color="var(--red)" />
+        <StatCard label="Total Employees" value={loading ? '…' : employees.length} color="var(--cyan2)" />
+        <StatCard label="Active" value={loading ? '…' : counts.active} color="var(--green)" />
+        <StatCard label="On Leave" value={loading ? '…' : counts.leave} color="var(--amber)" />
+        <StatCard label="Sick" value={loading ? '…' : counts.sick} color="var(--red)" />
       </Grid>
 
       <SectionTitle action={<Btn onClick={openAdd}>+ Add</Btn>}>
         Employee List
       </SectionTitle>
+
+      {fetchError && (
+        <div
+          style={{
+            fontSize: '13px',
+            color: 'var(--red)',
+            marginBottom: '14px',
+            padding: '12px 14px',
+            background: 'var(--red-bg)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid rgba(255,82,82,0.25)',
+            lineHeight: 1.5,
+          }}
+        >
+          {fetchError}
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
@@ -136,12 +162,18 @@ export default function Employes() {
         ))}
       </div>
 
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text3)', padding: '8px 0' }}>
+          <i className="fa-solid fa-spinner fa-spin" aria-hidden />
+          Chargement des employés…
+        </div>
+      ) : (
       <Table
         columns={[
           { key: 'name', label: 'Name', width: '1.5fr', render: (v, row) => (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'var(--cyan-dim)', border: '1px solid var(--cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: 'var(--cyan2)', flexShrink: 0 }}>
-                {v.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                {(v || '?').split(' ').map(n => n[0]).join('').slice(0, 2)}
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: '500' }}>{v}</div>
@@ -161,6 +193,7 @@ export default function Employes() {
         ]}
         rows={filtered}
       />
+      )}
 
       <Modal open={!!modal} onClose={() => setModal(null)} title={editId ? 'Edit Employee' : 'Add Employee'}>
         <Field label="Full Name"><input style={inputStyle} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="First Last" /></Field>

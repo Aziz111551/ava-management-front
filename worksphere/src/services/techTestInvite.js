@@ -19,11 +19,15 @@ function bodyToMessage(text, status) {
   return text?.slice(0, 220) || `HTTP ${status}`
 }
 
-export async function issueTechnicalTestInvite({ email, name }) {
+/**
+ * @param {{ email: string, name: string, skipResendEmail?: boolean }} opts
+ * skipResendEmail : ne pas envoyer le mail « test seul » (utilisé avec send-phase1-bundle).
+ */
+export async function issueTechnicalTestInvite({ email, name, skipResendEmail = false }) {
   const res = await fetch(`${FN}/issue-tech-test`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, name }),
+    body: JSON.stringify({ email, name, ...(skipResendEmail ? { skipResendEmail: true } : {}) }),
   })
   const text = await res.text()
   let data = {}

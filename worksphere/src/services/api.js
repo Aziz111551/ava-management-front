@@ -42,6 +42,10 @@ API.interceptors.response.use(
 export const login = (email, password) =>
   API.post('/auth/login', { email, password })
 
+/** Première connexion / changement obligatoire — aligner le chemin sur Nest (voir docs/BACKEND_EMPLOYEE_WELCOME.md). */
+export const changePasswordFirst = ({ currentPassword, newPassword }) =>
+  API.post('/auth/change-password', { currentPassword, newPassword })
+
 // RH
 /** @param {{ timeMin?: string, timeMax?: string }} [params] plage ISO pour le backend / N8N */
 export const getCalendarMeetings = (params) => API.get('/rh/calendar', { params })
