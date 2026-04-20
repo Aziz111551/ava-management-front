@@ -59,6 +59,15 @@ export function nowIso() {
   return new Date().toISOString()
 }
 
+export function createMeetingEvent(type, payload = {}) {
+  return {
+    id: `evt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    type,
+    at: nowIso(),
+    ...payload,
+  }
+}
+
 export function signMeetingJoinToken(payload, secret, expiresInSeconds = 60 * 60 * 24 * 14) {
   return signHS256(
     {
@@ -89,6 +98,14 @@ export async function saveMeeting(store, record) {
   return next
 }
 
+export async function appendMeetingEvent(store, meeting, event) {
+  const events = [...(Array.isArray(meeting.events) ? meeting.events : []), event].slice(-500)
+  return saveMeeting(store, {
+    ...meeting,
+    events,
+  })
+}
+
 export async function listMeetings(store) {
   const { blobs } = await store.list({ prefix: 'meeting-' })
   const rows = []
@@ -117,6 +134,8 @@ export function createMeetingLinks(siteUrl, meeting, tokens) {
 
 export function toMeetingSummary(record) {
   const transcriptCount = Array.isArray(record.transcript) ? record.transcript.length : 0
+  const eventCount = Array.isArray(record.events) ? record.events.length : 0
+  const preview = record.summaryReport || null
   return {
     id: record.id,
     type: record.type,
@@ -132,7 +151,17 @@ export function toMeetingSummary(record) {
     reportStatus: record.reportStatus || 'idle',
     transcriptStatus: record.transcriptStatus || 'idle',
     transcriptCount,
+    eventCount,
     reportGeneratedAt: record.reportGeneratedAt || null,
+    reportPreview: preview
+      ? {
+          title: preview.title || 'Rapport de réunion',
+          participantOpinion: preview.participantOpinion || preview.employeeOpinion || '',
+          recommendation: preview.recommendation || '',
+          rating: preview.rating || '',
+          conversationSummary: preview.conversationSummary || preview.summary || '',
+        }
+      : null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   }

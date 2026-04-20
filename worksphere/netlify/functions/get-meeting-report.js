@@ -23,6 +23,7 @@ export const handler = async (event) => {
       report: meeting.summaryReport || null,
       reportError: meeting.reportError || null,
       transcriptCount: Array.isArray(meeting.transcript) ? meeting.transcript.length : 0,
+      eventCount: Array.isArray(meeting.events) ? meeting.events.length : 0,
     })
   } catch (err) {
     return meetingJson(500, { ok: false, error: err?.message || 'Impossible de charger le rapport.' })

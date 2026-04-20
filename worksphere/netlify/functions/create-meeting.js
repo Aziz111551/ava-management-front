@@ -1,8 +1,10 @@
 import {
+  appendMeetingEvent,
   buildRoomName,
   buildSiteUrl,
   cleanEmail,
   cleanText,
+  createMeetingEvent,
   createMeetingLinks,
   getMeetingStore,
   isValidMeetingType,
@@ -116,6 +118,14 @@ export const handler = async (event) => {
     participantId: participantId || null,
     candidateId: candidateId || null,
     transcript: [],
+    events: [
+      createMeetingEvent('meeting_created', {
+        actorName: rhName,
+        actorEmail: rhEmail,
+        actorRole: 'rh',
+        detail: `Réunion créée pour ${participantName}`,
+      }),
+    ],
     summaryReport: null,
     reportGeneratedAt: null,
     createdAt,
@@ -183,9 +193,22 @@ export const handler = async (event) => {
     emailResult = { ok: false, error: err?.message || 'Erreur Resend.' }
   }
 
+  const finalMeeting = await appendMeetingEvent(
+    store,
+    saved,
+    createMeetingEvent(emailResult.ok ? 'invitation_sent' : 'invitation_failed', {
+      actorName: rhName,
+      actorEmail: rhEmail,
+      actorRole: 'rh',
+      detail: emailResult.ok
+        ? `Invitation envoyée à ${participantEmail}`
+        : `Échec d’envoi à ${participantEmail}: ${emailResult.error || 'erreur inconnue'}`,
+    }),
+  )
+
   return meetingJson(200, {
     ok: true,
-    meeting: toMeetingSummary(saved),
+    meeting: toMeetingSummary(finalMeeting),
     links,
     guestToken,
     emailSent: emailResult.ok,

@@ -56,6 +56,7 @@ export default function RHMeetings() {
     live: meetings.filter((item) => item.status === 'live').length,
     reports: meetings.filter((item) => item.reportStatus === 'ready').length,
   }
+  const readyReports = meetings.filter((item) => item.reportStatus === 'ready' && item.reportPreview)
 
   const createEmployeeMeeting = async () => {
     if (!selectedEmployee) {
@@ -164,6 +165,11 @@ export default function RHMeetings() {
               ),
             },
             {
+              key: 'eventCount',
+              label: 'Journal',
+              render: (value) => <span style={{ fontSize: '12px', color: 'var(--text2)' }}>{value || 0} événements</span>,
+            },
+            {
               key: 'id',
               label: 'Actions',
               width: '220px',
@@ -183,6 +189,75 @@ export default function RHMeetings() {
           ]}
           rows={meetings}
         />
+      )}
+
+      {readyReports.length > 0 && (
+        <div style={{ marginTop: '22px' }}>
+          <SectionTitle>Rapports détaillés par réunion</SectionTitle>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {readyReports.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border2)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
+                      {item.participantName}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>
+                      {item.type === 'employee_rh' ? 'Réunion RH ↔ employé' : 'Réunion RH ↔ candidat'} · {fmtDate(item.scheduledAt)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {item.reportPreview?.rating && <Pill type="blue">{item.reportPreview.rating}</Pill>}
+                    <Link to={`/rh/meetings/${item.id}`} style={{ textDecoration: 'none' }}>
+                      <Btn small>Voir détail</Btn>
+                    </Link>
+                  </div>
+                </div>
+
+                {item.reportPreview?.participantOpinion && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                      Avis sur le participant
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {item.reportPreview.participantOpinion}
+                    </div>
+                  </div>
+                )}
+
+                {item.reportPreview?.recommendation && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                      Recommandation RH
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {item.reportPreview.recommendation}
+                    </div>
+                  </div>
+                )}
+
+                {item.reportPreview?.conversationSummary && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                      Ce qui a été discuté
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {item.reportPreview.conversationSummary}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <Modal open={openModal} onClose={() => !sending && setOpenModal(false)} title="Nouvelle réunion RH ↔ employé">

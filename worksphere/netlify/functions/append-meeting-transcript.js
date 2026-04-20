@@ -1,5 +1,7 @@
 import {
+  appendMeetingEvent,
   cleanText,
+  createMeetingEvent,
   getMeetingById,
   getMeetingStore,
   meetingCors,
@@ -57,7 +59,17 @@ export const handler = async (event) => {
       transcriptStatus: 'capturing',
       transcript,
     })
-    return meetingJson(200, { ok: true, transcriptCount: saved.transcript.length })
+    const logged = await appendMeetingEvent(
+      store,
+      saved,
+      createMeetingEvent('transcript_line', {
+        actorName: speakerName,
+        actorEmail: speakerEmail,
+        actorRole: speakerRole,
+        text,
+      }),
+    )
+    return meetingJson(200, { ok: true, transcriptCount: logged.transcript.length })
   } catch (err) {
     return meetingJson(500, { ok: false, error: err?.message || 'Impossible d’ajouter la transcription.' })
   }

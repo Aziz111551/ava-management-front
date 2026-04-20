@@ -41,16 +41,26 @@ export async function generateMeetingReport(meeting) {
   if (!transcriptText) {
     throw new Error('Aucune transcription audio disponible pour générer le rapport.')
   }
+  const eventText = Array.isArray(meeting.events)
+    ? meeting.events
+        .map((event) => {
+          const actor = String(event.actorName || event.actorRole || '').trim()
+          const detail = String(event.detail || event.text || '').trim()
+          return `[${event.at || ''}] ${event.type}${actor ? ` · ${actor}` : ''}${detail ? ` · ${detail}` : ''}`
+        })
+        .filter(Boolean)
+        .join('\n')
+    : ''
 
   const prompt = [
     {
       role: 'system',
       content:
-        'Tu es un assistant RH. Réponds uniquement en JSON valide avec les clés: title, summary, participants (array de strings), technicalPoints (array), hrPoints (array), decisions (array), risks (array), nextSteps (array), conciseReport (string). Rédige en français clair et professionnel.',
+        'Tu es un assistant RH senior. Réponds uniquement en JSON valide avec les clés: title, conversationSummary, discussedTopics (array), participantOpinion (string), strengths (array), concerns (array), recommendation (string), rating (string), keyMoments (array), hrDecisions (array), nextSteps (array), detailedReport (string), conciseReport (string). Appuie-toi strictement sur la conversation réelle et le journal des événements. Si une information n’est pas étayée, dis-le clairement sans inventer.',
     },
     {
       role: 'user',
-      content: `Réunion WorkSphere\nType: ${meeting.type}\nRH: ${meeting.rhName} <${meeting.rhEmail}>\nParticipant: ${meeting.participantName} <${meeting.participantEmail}>\nCréneau: ${meeting.scheduledAt}\nNote RH initiale: ${meeting.note || '—'}\n\nTranscription:\n${transcriptText}`,
+      content: `Réunion WorkSphere\nType: ${meeting.type}\nRH: ${meeting.rhName} <${meeting.rhEmail}>\nParticipant: ${meeting.participantName} <${meeting.participantEmail}>\nCréneau: ${meeting.scheduledAt}\nNote RH initiale: ${meeting.note || '—'}\nNote RH de clôture: ${meeting.closingNote || '—'}\n\nJournal:\n${eventText || '—'}\n\nTranscription complète:\n${transcriptText}\n\nConsignes de rapport:\n- résume précisément ce qui a été dit\n- liste les sujets réellement abordés\n- donne un avis argumenté sur le participant (employé ou candidat) basé sur la conversation\n- donne une recommandation RH claire\n- mentionne les moments clés et décisions concrètes`,
     },
   ]
 
@@ -65,6 +75,7 @@ export async function generateMeetingReport(meeting) {
   return {
     generatedAt: new Date().toISOString(),
     transcriptExcerpt: transcriptText.slice(0, 4000),
+    eventExcerpt: eventText.slice(0, 2000),
     ...report,
   }
 }

@@ -1,6 +1,8 @@
 import { generateMeetingReport } from './lib/meetingReport.js'
 import {
+  appendMeetingEvent,
   cleanText,
+  createMeetingEvent,
   getMeetingById,
   getMeetingStore,
   meetingCors,
@@ -36,6 +38,16 @@ export const handler = async (event) => {
       reportStatus: 'running',
       transcriptStatus: meeting.transcript?.length ? 'captured' : meeting.transcriptStatus || 'idle',
     })
+    saved = await appendMeetingEvent(
+      store,
+      saved,
+      createMeetingEvent('meeting_completed', {
+        actorRole: 'rh',
+        actorName: meeting.rhName,
+        actorEmail: meeting.rhEmail,
+        detail: closingNote || 'Réunion terminée par le RH.',
+      }),
+    )
 
     try {
       const report = await generateMeetingReport(saved)
@@ -45,12 +57,30 @@ export const handler = async (event) => {
         summaryReport: report,
         reportGeneratedAt: report.generatedAt,
       })
+      saved = await appendMeetingEvent(
+        store,
+        saved,
+        createMeetingEvent('report_generated', {
+          actorRole: 'system',
+          actorName: 'WorkSphere AI',
+          detail: 'Rapport IA généré à partir de la transcription et du journal.',
+        }),
+      )
     } catch (err) {
       saved = await saveMeeting(store, {
         ...saved,
         reportStatus: 'error',
         reportError: err?.message || 'Génération du rapport impossible.',
       })
+      saved = await appendMeetingEvent(
+        store,
+        saved,
+        createMeetingEvent('report_generation_failed', {
+          actorRole: 'system',
+          actorName: 'WorkSphere AI',
+          detail: err?.message || 'Génération du rapport impossible.',
+        }),
+      )
     }
 
     return meetingJson(200, {

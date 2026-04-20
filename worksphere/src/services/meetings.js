@@ -57,6 +57,15 @@ export async function appendMeetingTranscript(payload) {
   return parseJson(res)
 }
 
+export async function logMeetingEvent(payload) {
+  const res = await fetch(`${FN}/log-meeting-event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  return parseJson(res)
+}
+
 export async function finishMeeting(payload) {
   const res = await fetch(`${FN}/finish-meeting`, {
     method: 'POST',

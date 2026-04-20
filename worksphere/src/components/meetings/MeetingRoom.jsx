@@ -6,6 +6,7 @@ import {
   fetchMeetingReport,
   finishMeeting,
   generateMeetingReport,
+  logMeetingEvent,
 } from '../../services/meetings'
 import { Btn, Pill, StatCard, Grid, SectionTitle, inputStyle } from '../shared/UI'
 
@@ -46,6 +47,7 @@ export default function MeetingRoom({
   const [report, setReport] = useState(meeting.summaryReport || null)
   const [reportStatus, setReportStatus] = useState(meeting.reportStatus || 'idle')
   const [reportError, setReportError] = useState(meeting.reportError || '')
+  const [activityLog, setActivityLog] = useState(Array.isArray(meeting.events) ? meeting.events : [])
   const [speechSupported, setSpeechSupported] = useState(true)
   const [speechState, setSpeechState] = useState('inactive')
   const recognitionRef = useRef(null)
@@ -63,7 +65,34 @@ export default function MeetingRoom({
     setReport(meeting.summaryReport || null)
     setReportStatus(meeting.reportStatus || 'idle')
     setReportError(meeting.reportError || '')
+    setActivityLog(Array.isArray(meeting.events) ? meeting.events : [])
   }, [meeting])
+
+  const pushLocalEvent = async (type, detail) => {
+    const optimistic = {
+      id: `local-${Date.now().toString(36)}`,
+      at: new Date().toISOString(),
+      type,
+      detail,
+      actorName: actor.name,
+      actorEmail: actor.email,
+      actorRole: actor.role,
+    }
+    setActivityLog((prev) => [optimistic, ...prev].slice(0, 60))
+    try {
+      await logMeetingEvent({
+        meetingId: meeting.id,
+        token: accessToken || undefined,
+        type,
+        detail,
+        actorName: actor.name,
+        actorEmail: actor.email,
+        actorRole: actor.role,
+      })
+    } catch {
+      /* ignore logging issues */
+    }
+  }
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -108,10 +137,14 @@ export default function MeetingRoom({
         }
       }
     }
-    recognition.onerror = () => setSpeechState('error')
+    recognition.onerror = () => {
+      setSpeechState('error')
+      void pushLocalEvent('speech_error', 'Erreur de transcription navigateur.')
+    }
     recognition.onend = () => {
       if (!mountedRef.current || meeting.status === 'completed' || !joined) return
       setSpeechState('restarting')
+      void pushLocalEvent('speech_restarting', 'Redémarrage automatique de la transcription locale.')
       try {
         recognition.start()
       } catch {
@@ -138,6 +171,9 @@ export default function MeetingRoom({
 
   const reportBadge = transcriptStatusLabel(reportStatus)
   const canGenerateReport = meeting.status === 'completed' && !report && !finishing
+  const decisionItems = Array.isArray(report?.hrDecisions) && report.hrDecisions.length > 0
+    ? report.hrDecisions
+    : Array.isArray(report?.decisions) ? report.decisions : []
 
   const rightSummary = useMemo(
     () => [
@@ -286,19 +322,36 @@ export default function MeetingRoom({
                 externalApi.addListener('videoConferenceJoined', () => {
                   setJoined(true)
                   setParticipantCount(1)
+                  void pushLocalEvent('video_conference_joined', 'Participant connecté à la réunion.')
                 })
                 externalApi.addListener('participantJoined', () => {
                   setParticipantCount((count) => count + 1)
+                  void pushLocalEvent('participant_joined', 'Un participant a rejoint la réunion.')
                 })
                 externalApi.addListener('participantLeft', () => {
                   setParticipantCount((count) => Math.max(1, count - 1))
+                  void pushLocalEvent('participant_left', 'Un participant a quitté la réunion.')
+                })
+                externalApi.addListener('audioMuteStatusChanged', (payload) => {
+                  void pushLocalEvent(
+                    payload?.muted ? 'audio_muted' : 'audio_unmuted',
+                    payload?.muted ? 'Micro coupé.' : 'Micro réactivé.',
+                  )
+                })
+                externalApi.addListener('videoMuteStatusChanged', (payload) => {
+                  void pushLocalEvent(
+                    payload?.muted ? 'video_muted' : 'video_unmuted',
+                    payload?.muted ? 'Caméra coupée.' : 'Caméra réactivée.',
+                  )
                 })
                 externalApi.addListener('readyToClose', () => {
                   setJoined(false)
+                  void pushLocalEvent('meeting_ready_to_close', 'La réunion est prête à être fermée.')
                 })
               }}
               onReadyToClose={() => {
                 setJoined(false)
+                void pushLocalEvent('meeting_closed_ui', 'La salle a été fermée.')
               }}
               spinner={() => (
                 <div style={{ minHeight: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)' }}>
@@ -387,15 +440,70 @@ export default function MeetingRoom({
                   {report.title || 'Rapport de réunion'}
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
-                  {report.conciseReport || report.summary || '—'}
+                  {report.conciseReport || report.conversationSummary || report.summary || '—'}
                 </div>
-                {Array.isArray(report.decisions) && report.decisions.length > 0 && (
+                {report.rating && (
+                  <div style={{ fontSize: '13px', color: 'var(--cyan2)', fontWeight: 700 }}>
+                    Niveau / appréciation: {report.rating}
+                  </div>
+                )}
+                {report.participantOpinion && (
+                  <div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Avis sur le participant
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {report.participantOpinion}
+                    </div>
+                  </div>
+                )}
+                {Array.isArray(report.discussedTopics) && report.discussedTopics.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Sujets abordés
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
+                      {report.discussedTopics.map((item, index) => <li key={index}>{item}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {Array.isArray(report.strengths) && report.strengths.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Points forts observés
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
+                      {report.strengths.map((item, index) => <li key={index}>{item}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {Array.isArray(report.concerns) && report.concerns.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Points de vigilance
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
+                      {report.concerns.map((item, index) => <li key={index}>{item}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {report.recommendation && (
+                  <div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Recommandation RH
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {report.recommendation}
+                    </div>
+                  </div>
+                )}
+                {decisionItems.length > 0 && (
                   <div>
                     <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       Décisions
                     </div>
                     <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
-                      {report.decisions.map((item, index) => <li key={index}>{item}</li>)}
+                      {decisionItems.map((item, index) => <li key={index}>{item}</li>)}
                     </ul>
                   </div>
                 )}
@@ -409,6 +517,65 @@ export default function MeetingRoom({
                     </ul>
                   </div>
                 )}
+                {report.detailedReport && (
+                  <div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Rapport détaillé
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                      {report.detailedReport}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border2)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '16px',
+            }}
+          >
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '12px' }}>
+              Journal de réunion
+            </div>
+            {activityLog.length === 0 ? (
+              <div style={{ fontSize: '13px', color: 'var(--text3)', lineHeight: 1.7 }}>
+                Aucun événement enregistré pour le moment.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '10px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+                {activityLog
+                  .slice()
+                  .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime())
+                  .map((event) => (
+                    <div key={event.id} style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--text)', fontWeight: 600 }}>
+                          {event.actorName || event.actorRole || 'Système'}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>
+                          {formatDate(event.at)}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--cyan2)', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {event.type}
+                      </div>
+                      {event.detail && (
+                        <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '6px', lineHeight: 1.6 }}>
+                          {event.detail}
+                        </div>
+                      )}
+                      {event.text && (
+                        <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '6px', lineHeight: 1.6 }}>
+                          {event.text}
+                        </div>
+                      )}
+                    </div>
+                  ))}
               </div>
             )}
           </div>
