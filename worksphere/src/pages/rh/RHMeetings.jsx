@@ -12,6 +12,11 @@ function fmtDate(value) {
 }
 
 function buildAiSuggestion(item) {
+  if (item?.reportStatus && item.reportStatus !== 'ready') {
+    if (item.reportStatus === 'running') return 'Rapport IA en cours de génération…'
+    if (item.reportStatus === 'error') return 'Rapport IA en erreur — ouvrez la réunion et relancez la génération.'
+    if (item.status === 'completed' && item.reportStatus === 'idle') return 'Réunion terminée — rapport pas encore généré : ouvrez la réunion pour lancer le rapport.'
+  }
   const report = item?.reportPreview || item?.summaryReport || {}
   const rating = String(report.rating || '').toLowerCase()
   const recommendation = String(report.recommendation || '').trim()
@@ -25,6 +30,26 @@ function buildAiSuggestion(item) {
     return `Défavorable. ${recommendation}`.trim()
   }
   return recommendation || 'Décision IA disponible dans le rapport.'
+}
+
+function isPhase3CandidateMeeting(item) {
+  return item?.type === 'candidate_phase2'
+}
+
+/** Candidats visibles en Phase 3 : entretien physique Phase 2, une fois la réunion close ou le rapport engagé. */
+function isPhase3Listable(item) {
+  if (!isPhase3CandidateMeeting(item)) return false
+  if (item.phase3Decision) return true
+  return (
+    item.status === 'completed' ||
+    item.reportStatus === 'ready' ||
+    item.reportStatus === 'running' ||
+    item.reportStatus === 'error'
+  )
+}
+
+function canPhase3Decide(item) {
+  return isPhase3CandidateMeeting(item) && !item.phase3Decision && item.reportStatus === 'ready'
 }
 
 const EMPTY_FORM = {
@@ -89,16 +114,33 @@ export default function RHMeetings() {
 
   const readyReports = meetings.filter((item) => item.reportStatus === 'ready' && item.reportPreview)
 
-  const phase3Meetings = useMemo(
-    () => meetings.filter((item) => item.type === 'candidate_phase2' && item.reportStatus === 'ready'),
-    [meetings],
-  )
+  const phase3Pool = useMemo(() => meetings.filter(isPhase3CandidateMeeting), [meetings])
+
+  const phase3Meetings = useMemo(() => {
+    const rows = meetings.filter(isPhase3Listable)
+    return rows.sort((a, b) => {
+      const aDone = a.phase3Decision ? 1 : 0
+      const bDone = b.phase3Decision ? 1 : 0
+      if (aDone !== bDone) return aDone - bDone
+      return new Date(b.scheduledAt || b.createdAt || 0).getTime() - new Date(a.scheduledAt || a.createdAt || 0).getTime()
+    })
+  }, [meetings])
 
   const phase3Stats = {
-    pending: phase3Meetings.filter((item) => !item.phase3Decision).length,
-    accepted: phase3Meetings.filter((item) => item.phase3Decision === 'accepted').length,
-    refused: phase3Meetings.filter((item) => item.phase3Decision === 'refused').length,
+    pending: phase3Pool.filter(
+      (item) =>
+        !item.phase3Decision &&
+        (item.status === 'completed' ||
+          item.reportStatus === 'ready' ||
+          item.reportStatus === 'running' ||
+          item.reportStatus === 'error'),
+    ).length,
+    accepted: phase3Pool.filter((item) => item.phase3Decision === 'accepted').length,
+    refused: phase3Pool.filter((item) => item.phase3Decision === 'refused').length,
   }
+
+  const hasOnlyEmployeeMeetings =
+    meetings.length > 0 && meetings.every((m) => m.type === 'employee_rh') && phase3Pool.length === 0
 
   const createEmployeeMeeting = async () => {
     if (!selectedEmployee) {
@@ -141,6 +183,10 @@ export default function RHMeetings() {
 
   const handleRefuse = async () => {
     if (!decisionModal) return
+    if (!canPhase3Decide(decisionModal)) {
+      alert('Le rapport IA doit être prêt avant d’enregistrer la décision.')
+      return
+    }
     setProcessingDecision(true)
     try {
       let emailSent = false
@@ -183,6 +229,10 @@ export default function RHMeetings() {
 
   const handleAccept = async () => {
     if (!decisionModal) return
+    if (!canPhase3Decide(decisionModal)) {
+      alert('Le rapport IA doit être prêt avant d’accepter le candidat.')
+      return
+    }
     setProcessingDecision(true)
     try {
       const payload = {
@@ -289,7 +339,7 @@ export default function RHMeetings() {
 
       <p style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '860px', lineHeight: 1.55, marginBottom: '16px' }}>
         {isPhase3Page
-          ? 'Cette vue affiche uniquement les candidats ayant terminé la réunion Phase 2 avec rapport IA prêt, afin de prendre la décision finale RH et d’envoyer l’e-mail d’acceptation ou de refus.'
+          ? 'Phase 3 concerne uniquement les entretiens candidats créés depuis la Phase 2 (test physique). Dès que la réunion est clôturée par le RH, le candidat apparaît ici ; les boutons Accepter / Refuser sont actifs lorsque le rapport IA est prêt. Les réunions RH ↔ employé restent dans « Réunions intégrées ».'
           : 'Cette vue centralise les réunions RH planifiées dans WorkSphere pour les candidats Phase 2 et les employés, avec accès à la salle intégrée et au rapport IA final.'}
       </p>
 
@@ -299,7 +349,13 @@ export default function RHMeetings() {
         <div style={{ fontSize: '13px', color: 'var(--text3)' }}>Chargement des réunions…</div>
       ) : isPhase3Page ? (
         phase3Meetings.length === 0 ? (
-          <Empty message="Aucun candidat Phase 3 prêt pour décision finale." />
+          <Empty
+            message={
+              hasOnlyEmployeeMeetings
+                ? 'Aucun entretien candidat Phase 2 : vous n’avez que des réunions RH ↔ employé. Créez une réunion candidat depuis « Phase 2 – Test physique », puis clôturez-la pour voir la décision ici.'
+                : 'Aucun entretien candidat Phase 2 clôturé pour le moment. Planifiez l’entretien physique dans Phase 2, terminez la réunion depuis la salle RH, puis le candidat apparaîtra ici.'
+            }
+          />
         ) : (
           <>
             <Table
@@ -316,8 +372,17 @@ export default function RHMeetings() {
                 },
                 { key: 'scheduledAt', label: 'Créneau', render: (value) => fmtDate(value) },
                 {
+                  key: 'reportStatus',
+                  label: 'Rapport IA',
+                  render: (value) => (
+                    <Pill type={value === 'ready' ? 'green' : value === 'running' ? 'amber' : value === 'error' ? 'red' : 'default'}>
+                      {value === 'ready' ? 'Prêt' : value === 'running' ? 'Génération' : value === 'error' ? 'Erreur' : '—'}
+                    </Pill>
+                  ),
+                },
+                {
                   key: 'reportPreview',
-                  label: 'Décision IA',
+                  label: 'Avis IA',
                   width: '2fr',
                   render: (_, row) => <span style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.6 }}>{buildAiSuggestion(row)}</span>,
                 },
@@ -342,7 +407,7 @@ export default function RHMeetings() {
                       <Link to={`/rh/meetings/${row.id}`} style={{ textDecoration: 'none' }}>
                         <Btn small variant="ghost">Ouvrir</Btn>
                       </Link>
-                      {!row.phase3Decision && (
+                      {!row.phase3Decision && canPhase3Decide(row) && (
                         <Btn small onClick={() => setDecisionModal(row)}>
                           Accepter / Refuser
                         </Btn>
@@ -378,6 +443,25 @@ export default function RHMeetings() {
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         {item.reportPreview?.rating && <Pill type="blue">{item.reportPreview.rating}</Pill>}
+                        <Pill
+                          type={
+                            item.reportStatus === 'ready'
+                              ? 'green'
+                              : item.reportStatus === 'running'
+                                ? 'amber'
+                                : item.reportStatus === 'error'
+                                  ? 'red'
+                                  : 'default'
+                          }
+                        >
+                          {item.reportStatus === 'ready'
+                            ? 'Rapport prêt'
+                            : item.reportStatus === 'running'
+                              ? 'Rapport…'
+                              : item.reportStatus === 'error'
+                                ? 'Rapport erreur'
+                                : 'Rapport —'}
+                        </Pill>
                         <Pill type={item.phase3Decision === 'accepted' ? 'green' : item.phase3Decision === 'refused' ? 'red' : 'default'}>
                           {item.phase3Decision === 'accepted' ? 'Accepté' : item.phase3Decision === 'refused' ? 'Refusé' : 'En attente'}
                         </Pill>
@@ -428,16 +512,23 @@ export default function RHMeetings() {
                     )}
 
                     {!item.phase3Decision && (
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
                         <Btn variant="ghost" onClick={() => setReportModal(item)}>
-                          Voir rapport
+                          Aperçu rapport
                         </Btn>
-                        <Btn variant="danger" onClick={() => setDecisionModal(item)}>
-                          Refuser
-                        </Btn>
-                        <Btn onClick={() => setDecisionModal(item)}>
-                          Accepter
-                        </Btn>
+                        <Link to={`/rh/meetings/${item.id}`} style={{ textDecoration: 'none' }}>
+                          <Btn variant="ghost">Ouvrir la réunion</Btn>
+                        </Link>
+                        {canPhase3Decide(item) ? (
+                          <>
+                            <Btn variant="danger" onClick={() => setDecisionModal(item)}>
+                              Refuser
+                            </Btn>
+                            <Btn onClick={() => setDecisionModal(item)}>Accepter</Btn>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: 'var(--text3)' }}>Décision après rapport IA prêt.</span>
+                        )}
                       </div>
                     )}
                   </div>
