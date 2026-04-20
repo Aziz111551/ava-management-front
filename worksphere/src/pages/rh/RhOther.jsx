@@ -18,7 +18,8 @@ import {
 } from '../../services/candidatPipeline'
 import { fetchRemoteTechPipeline } from '../../services/pipelineRemote'
 import { issueTechnicalTestInvite } from '../../services/techTestInvite'
-import { sendPhase2PhysicalInvite, defaultMeetingDatetimeLocal } from '../../services/phase2PhysicalInvite'
+import { defaultMeetingDatetimeLocal } from '../../services/phase2PhysicalInvite'
+import { createMeetingInvite } from '../../services/meetings'
 import { SectionTitle, Pill, Btn, Table, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
 
 function useRemotePipelineLookup() {
@@ -468,6 +469,14 @@ export function Candidats() {
 // ── CANDIDATS PHASE 2 (test physique / Teams) ─────────────────
 export function CandidatsPhase2() {
   const { remoteLookup, refreshRemote } = useRemotePipelineLookup()
+  const rhUser =
+    (() => {
+      try {
+        return JSON.parse(localStorage.getItem('ws_user') || '{}')
+      } catch {
+        return {}
+      }
+    })()
   const [cands, setCands] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -476,7 +485,6 @@ export function CandidatsPhase2() {
   const [pipelineTick, setPipelineTick] = useState(0)
   const [scheduleRow, setScheduleRow] = useState(null)
   const [meetingLocal, setMeetingLocal] = useState('')
-  const [teamsUrl, setTeamsUrl] = useState('')
   const [rhNote, setRhNote] = useState('')
 
   const phase2Rows = useMemo(
@@ -534,7 +542,6 @@ export function CandidatsPhase2() {
     }
     setScheduleRow(row)
     setMeetingLocal(defaultMeetingDatetimeLocal())
-    setTeamsUrl('')
     setRhNote('')
   }
 
@@ -548,11 +555,6 @@ export function CandidatsPhase2() {
     const row = scheduleRow
     const email = (row.email || '').trim()
     const name = row.name?.trim() || 'Candidat'
-    const url = teamsUrl.trim()
-    if (!url.startsWith('http')) {
-      alert('Collez un lien Teams valide (https://).')
-      return
-    }
     if (!meetingLocal) {
       alert('Choisissez la date et l’heure de l’entretien.')
       return
@@ -560,23 +562,27 @@ export function CandidatsPhase2() {
     const meetingAtIso = new Date(meetingLocal).toISOString()
     setProcessingId(row._id)
     try {
-      const res = await sendPhase2PhysicalInvite({
-        email,
-        candidateName: name,
-        meetingAt: meetingAtIso,
-        teamsUrl: url,
+      const res = await createMeetingInvite({
+        type: 'candidate_phase2',
+        participantRole: 'candidate',
+        participantName: name,
+        participantEmail: email,
+        candidateId: row._id,
+        rhName: rhUser?.name || 'Responsable RH',
+        rhEmail: rhUser?.email || '',
+        scheduledAt: meetingAtIso,
         note: rhNote.trim() || undefined,
       })
-      markPhysicalSent(row._id, { meetingAt: meetingAtIso, teamsUrl: url })
+      markPhysicalSent(row._id, { meetingAt: meetingAtIso, teamsUrl: res?.links?.guestRoom || '#' })
       setPipelineTick((t) => t + 1)
       setScheduleRow(null)
       alert(
         res.emailSent
-          ? res.message || 'Convocation Phase 2 envoyée.'
-          : `E-mail non envoyé : ${res.message || 'erreur Resend'}`,
+          ? res.message || 'Réunion Phase 2 créée et invitation envoyée.'
+          : `Réunion créée, mais e-mail non envoyé : ${res.message || 'erreur Resend'}`,
       )
     } catch (err) {
-      alert(err.message || "Impossible d'envoyer la convocation.")
+      alert(err.message || "Impossible de créer la réunion intégrée.")
     } finally {
       setProcessingId(null)
     }
@@ -608,11 +614,11 @@ export function CandidatsPhase2() {
             small
             variant="primary"
             disabled={busy}
-            title="Envoyer date + lien Teams (test physique / entretien)"
+            title="Créer une réunion intégrée WorkSphere"
             onClick={() => openSchedule(row)}
           >
-            {busy ? <i className="fa-solid fa-spinner fa-spin" aria-hidden /> : <i className="fa-brands fa-microsoft" aria-hidden />}
-            <span>Teams</span>
+            {busy ? <i className="fa-solid fa-spinner fa-spin" aria-hidden /> : <i className="fa-solid fa-video" aria-hidden />}
+            <span>Meet</span>
           </Btn>
           <Btn small variant="danger" disabled={busy} title="Supprimer candidature" onClick={() => handleDeleteCandidate(row)}>
             <i className="fa-solid fa-trash" aria-hidden />
@@ -658,11 +664,12 @@ export function CandidatsPhase2() {
           </div>
         }
       >
-        Phase 2 — Test physique (Teams)
+        Phase 2 — Test physique (réunion intégrée)
       </SectionTitle>
       <p style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '880px', lineHeight: 1.55, marginBottom: '18px' }}>
         Candidats ayant obtenu plus de {TECH_AUTO_PASS_MIN}/100 au test technique en ligne (sync Netlify), ou passage manuel depuis
-        la Phase 1. Colonne <strong>Test technique</strong> : score IA obtenu sur l’exercice.
+        la Phase 1. Colonne <strong>Test technique</strong> : score IA obtenu sur l’exercice. Le bouton <strong>Meet</strong> crée
+        une réunion intégrée WorkSphere avec invitation envoyée automatiquement.
       </p>
       {error && <div style={{ fontSize: '13px', color: 'var(--red)', marginBottom: '12px' }}>{error}</div>}
 
@@ -680,7 +687,7 @@ export function CandidatsPhase2() {
         <Table columns={[...phase2ColsBase, phase2Actions]} rows={phase2Rows} />
       )}
 
-      <Modal open={!!scheduleRow} onClose={closeSchedule} title="Phase 2 — Convocation Teams">
+      <Modal open={!!scheduleRow} onClose={closeSchedule} title="Phase 2 — Réunion intégrée WorkSphere">
         {scheduleRow && (
           <>
             <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '14px', lineHeight: 1.5 }}>
@@ -694,15 +701,6 @@ export function CandidatsPhase2() {
                 style={inputStyle}
                 value={meetingLocal}
                 onChange={(e) => setMeetingLocal(e.target.value)}
-              />
-            </Field>
-            <Field label="Lien de la réunion Teams">
-              <input
-                type="url"
-                style={inputStyle}
-                value={teamsUrl}
-                onChange={(e) => setTeamsUrl(e.target.value)}
-                placeholder="https://teams.microsoft.com/l/meetup-join/…"
               />
             </Field>
             <Field label="Notes (optionnel)">
@@ -723,7 +721,7 @@ export function CandidatsPhase2() {
                 ) : (
                   <i className="fa-regular fa-paper-plane" aria-hidden />
                 )}
-                Envoyer convocation Phase 2
+                Créer et envoyer la réunion
               </Btn>
             </div>
           </>

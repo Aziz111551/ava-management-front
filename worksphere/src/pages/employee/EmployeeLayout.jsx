@@ -15,6 +15,7 @@ const navItems = [
     items: [
       { path: '/employee/conges',    icon: 'fa-solid fa-umbrella-beach', label: 'Leave Request' },
       { path: '/employee/maladie',   icon: 'fa-solid fa-briefcase-medical', label: 'Sick Leave' },
+      { path: '/employee/meetings',  icon: 'fa-solid fa-video', label: 'RH Meetings' },
     ],
   },
 ]
@@ -25,12 +26,16 @@ const titles = {
   '/employee/taches':    'Trello Tasks',
   '/employee/conges':    'Leave Request',
   '/employee/maladie':   'Sick Leave',
+  '/employee/meetings':  'RH Meetings',
 }
 
 export default function EmployeeLayout() {
   const location = useLocation()
+  const pageTitle = location.pathname.startsWith('/employee/meetings')
+    ? 'RH Meetings'
+    : (titles[location.pathname] || 'Employee workspace')
   return (
-    <Layout navItems={navItems} pageTitle={titles[location.pathname] || 'Employee workspace'}>
+    <Layout navItems={navItems} pageTitle={pageTitle}>
       <Outlet />
     </Layout>
   )
