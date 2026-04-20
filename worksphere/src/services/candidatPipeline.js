@@ -26,6 +26,14 @@ function save(data) {
   }
 }
 
+export function clearPipelineState() {
+  try {
+    localStorage.removeItem(PIPELINE_KEY)
+  } catch {
+    /* ignore quota/security */
+  }
+}
+
 /** @param {string} id @param {'tech_sent' | 'tech_passed' | 'physical_sent'} stage */
 export function setPipelineStage(id, stage, extra = {}) {
   const p = load()

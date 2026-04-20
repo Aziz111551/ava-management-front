@@ -16,6 +16,25 @@ const LIST_KEYS = [
   'candidates',
 ]
 
+const ID_KEYS = [
+  'evaluation_id',
+  'id',
+  '_id',
+  'row_number',
+  'job_id',
+  'jobId',
+  'application_id',
+  'applicationId',
+  'candidate_id',
+  'candidateId',
+  'submission_id',
+  'submissionId',
+  'response_id',
+  'responseId',
+  'uuid',
+  'reference',
+]
+
 export function extractEvaluationsArray(payload) {
   if (Array.isArray(payload)) return payload
   if (!payload || typeof payload !== 'object') return []
@@ -36,6 +55,37 @@ function pickCreatedAt(raw) {
     raw.timestamp ??
     null
   )
+}
+
+function firstNonEmpty(raw, keys) {
+  for (const k of keys) {
+    const v = raw?.[k]
+    if (v != null && String(v).trim() !== '') return String(v).trim()
+  }
+  return ''
+}
+
+function hashText(text) {
+  let h = 2166136261
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0).toString(36)
+}
+
+function fallbackStableId(raw) {
+  const seed = [
+    firstNonEmpty(raw, ['created_at (date traitement)', 'created_at', 'createdAt', 'date', 'timestamp']),
+    firstNonEmpty(raw, ['candidate_email', 'email']),
+    firstNonEmpty(raw, ['candidate_name', 'name']),
+    firstNonEmpty(raw, ['job_title', 'position', 'role', 'jobTitle']),
+    firstNonEmpty(raw, ['cv_url', 'cv', 'cvUrl']),
+  ]
+    .map((v) => v.toLowerCase())
+    .join('|')
+
+  return `fp-${hashText(seed || JSON.stringify(raw || {}))}`
 }
 
 /**
@@ -66,18 +116,11 @@ export function normalizeEvaluation(raw, index) {
       : new Date().toISOString()
 
   /**
-   * Toujours suffixer par l’index : certains exports répètent le même
-   * `row_number` ou `id` pour chaque ligne — sans ça, un Decline efface toute la liste.
+   * n8n / Sheets : garder un id stable entre refreshs.
+   * On privilégie un id explicite du workflow, sinon un fingerprint déterministe.
    */
-  const base =
-    raw.evaluation_id ??
-    raw.id ??
-    raw._id ??
-    raw.row_number
-  const _id =
-    base != null && String(base).trim() !== ''
-      ? `${String(base).trim()}:${index}`
-      : `idx-${index}`
+  const base = firstNonEmpty(raw, ID_KEYS)
+  const _id = base || fallbackStableId(raw)
 
   return {
     _id,

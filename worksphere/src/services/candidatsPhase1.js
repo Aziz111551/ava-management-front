@@ -33,6 +33,14 @@ export function setCandidatDecision(id, action) {
   }
 }
 
+export function clearCandidatDecisions() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    /* ignore quota/security */
+  }
+}
+
 /** Exclut uniquement les **refus**. Les anciennes entrées `accepted` ne masquent plus la ligne. */
 export function filterNotDeclined(rows) {
   const m = loadMap()

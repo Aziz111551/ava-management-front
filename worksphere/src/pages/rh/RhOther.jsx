@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getReclamations, updateReclamation, getMaladies } from '../../services/api'
 import { fetchEvaluations } from '../../services/evaluationsWebhook'
-import { filterNotDeclined, setCandidatDecision } from '../../services/candidatsPhase1'
+import {
+  filterNotDeclined,
+  setCandidatDecision,
+  clearCandidatDecisions,
+} from '../../services/candidatsPhase1'
 import {
   getPhase1Rows,
   getPhase2Rows,
@@ -10,6 +14,7 @@ import {
   setTechPassedWithSnapshot,
   markPhysicalSent,
   getStageFor,
+  clearPipelineState,
 } from '../../services/candidatPipeline'
 import { fetchRemoteTechPipeline } from '../../services/pipelineRemote'
 import { issueTechnicalTestInvite } from '../../services/techTestInvite'
@@ -17,7 +22,7 @@ import { sendPhase2PhysicalInvite, defaultMeetingDatetimeLocal } from '../../ser
 import { SectionTitle, Pill, Btn, Table, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
 
 function useRemotePipelineLookup() {
-  const [remoteLookup, setRemoteLookup] = useState(() => ({ byId: {}, byEmail: {} }))
+  const [remoteLookup, setRemoteLookup] = useState(() => ({ byId: {} }))
   const refreshRemote = useCallback(async () => {
     const r = await fetchRemoteTechPipeline()
     setRemoteLookup(r)
@@ -28,6 +33,18 @@ function useRemotePipelineLookup() {
     return () => clearInterval(id)
   }, [refreshRemote])
   return { remoteLookup, refreshRemote }
+}
+
+function confirmAndResetLocalRecruitmentState() {
+  if (
+    !window.confirm(
+      'Réinitialiser les filtres locaux candidats ? (suppression/étapes locales).',
+    )
+  )
+    return false
+  clearCandidatDecisions()
+  clearPipelineState()
+  return true
 }
 
 const techScoreColumn = {
@@ -264,6 +281,12 @@ export function Candidats() {
     }
   }, [refreshRemote])
 
+  const handleResetLocalState = async () => {
+    if (!confirmAndResetLocalRecruitmentState()) return
+    setPipelineTick((t) => t + 1)
+    await refreshList()
+  }
+
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -395,17 +418,30 @@ export function Candidats() {
 
       <SectionTitle
         action={
-          <Btn
-            small
-            variant="ghost"
-            disabled={loading || refreshing}
-            onClick={refreshList}
-            title="Actualiser la liste et la sync test technique"
-            style={{ gap: '8px' }}
-          >
-            <i className={`fa-solid fa-arrows-rotate ${refreshing ? 'fa-spin' : ''}`} aria-hidden />
-            Refresh
-          </Btn>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Btn
+              small
+              variant="ghost"
+              disabled={loading || refreshing}
+              onClick={refreshList}
+              title="Actualiser la liste et la sync test technique"
+              style={{ gap: '8px' }}
+            >
+              <i className={`fa-solid fa-arrows-rotate ${refreshing ? 'fa-spin' : ''}`} aria-hidden />
+              Refresh
+            </Btn>
+            <Btn
+              small
+              variant="danger"
+              disabled={loading || refreshing}
+              onClick={handleResetLocalState}
+              title="Vider les filtres locaux (suppression / pipeline) puis recharger"
+              style={{ gap: '8px' }}
+            >
+              <i className="fa-solid fa-eraser" aria-hidden />
+              Réinitialiser filtres
+            </Btn>
+          </div>
         }
       >
         Phase 1 — Test technique
@@ -461,6 +497,13 @@ export function CandidatsPhase2() {
       setRefreshing(false)
     }
   }, [refreshRemote])
+
+  const handleResetLocalState = async () => {
+    if (!confirmAndResetLocalRecruitmentState()) return
+    if (scheduleRow) setScheduleRow(null)
+    setPipelineTick((t) => t + 1)
+    await refreshList()
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -589,17 +632,30 @@ export function CandidatsPhase2() {
 
       <SectionTitle
         action={
-          <Btn
-            small
-            variant="ghost"
-            disabled={loading || refreshing}
-            onClick={refreshList}
-            title="Actualiser"
-            style={{ gap: '8px' }}
-          >
-            <i className={`fa-solid fa-arrows-rotate ${refreshing ? 'fa-spin' : ''}`} aria-hidden />
-            Refresh
-          </Btn>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Btn
+              small
+              variant="ghost"
+              disabled={loading || refreshing}
+              onClick={refreshList}
+              title="Actualiser"
+              style={{ gap: '8px' }}
+            >
+              <i className={`fa-solid fa-arrows-rotate ${refreshing ? 'fa-spin' : ''}`} aria-hidden />
+              Refresh
+            </Btn>
+            <Btn
+              small
+              variant="danger"
+              disabled={loading || refreshing}
+              onClick={handleResetLocalState}
+              title="Vider les filtres locaux (suppression / pipeline) puis recharger"
+              style={{ gap: '8px' }}
+            >
+              <i className="fa-solid fa-eraser" aria-hidden />
+              Réinitialiser filtres
+            </Btn>
+          </div>
         }
       >
         Phase 2 — Test physique (Teams)
