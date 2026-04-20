@@ -136,6 +136,7 @@ export function getPhase2Rows(rows, remoteLookup) {
   }
 
   for (const [id, entry] of Object.entries(pipe)) {
+    if (dec[id] === 'declined') continue
     if (isPhysicalDone(pipe, id)) continue
     if (!isPromotedToPhase2(pipe, id, entry.snapshot?.email, remoteLookup)) continue
     if (seen.has(id)) continue
@@ -161,6 +162,7 @@ export function getPhase2Rows(rows, remoteLookup) {
 
   if (remoteLookup?.byId) {
     for (const [id, rem] of Object.entries(remoteLookup.byId)) {
+      if (dec[id] === 'declined') continue
       if (seen.has(id)) continue
       if (isPhysicalDone(pipe, id)) continue
       if (Number(rem.techTestScore) <= TECH_AUTO_PASS_MIN) continue

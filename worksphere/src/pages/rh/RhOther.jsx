@@ -328,8 +328,8 @@ export function Candidats() {
     setPipelineTick((t) => t + 1)
   }
 
-  const handleDecline = (row) => {
-    if (!window.confirm('Refuser ce candidat ? Il sera retiré des listes (stockage local).')) return
+  const handleDeleteCandidate = (row) => {
+    if (!window.confirm('Supprimer cette candidature ? Elle sera retirée des listes.')) return
     setCandidatDecision(row._id, 'declined')
     setCands((prev) => prev.filter((c) => c._id !== row._id))
     setPipelineTick((t) => t + 1)
@@ -378,8 +378,8 @@ export function Candidats() {
             <i className="fa-solid fa-arrow-right" aria-hidden />
             <span>Ph.2 manuel</span>
           </Btn>
-          <Btn small variant="danger" disabled={busy} title="Refuser" onClick={() => handleDecline(row)}>
-            <i className="fa-solid fa-xmark" aria-hidden />
+          <Btn small variant="danger" disabled={busy} title="Supprimer candidature" onClick={() => handleDeleteCandidate(row)}>
+            <i className="fa-solid fa-trash" aria-hidden />
           </Btn>
         </div>
       )
@@ -539,6 +539,14 @@ export function CandidatsPhase2() {
     }
   }
 
+  const handleDeleteCandidate = (row) => {
+    if (!window.confirm('Supprimer cette candidature ? Elle sera retirée des listes.')) return
+    setCandidatDecision(row._id, 'declined')
+    setCands((prev) => prev.filter((c) => c._id !== row._id))
+    if (scheduleRow?._id === row._id) setScheduleRow(null)
+    setPipelineTick((t) => t + 1)
+  }
+
   const phase2ColsBase = insertColumnAfter(
     candidateColumns({ onPdf: openPdf }),
     'position',
@@ -548,7 +556,7 @@ export function CandidatsPhase2() {
   const phase2Actions = {
     key: '_actions',
     label: 'Actions',
-    width: '160px',
+    width: '220px',
     render: (_, row) => {
       const busy = processingId === row._id
       return (
@@ -562,6 +570,10 @@ export function CandidatsPhase2() {
           >
             {busy ? <i className="fa-solid fa-spinner fa-spin" aria-hidden /> : <i className="fa-brands fa-microsoft" aria-hidden />}
             <span>Teams</span>
+          </Btn>
+          <Btn small variant="danger" disabled={busy} title="Supprimer candidature" onClick={() => handleDeleteCandidate(row)}>
+            <i className="fa-solid fa-trash" aria-hidden />
+            <span>Supprimer</span>
           </Btn>
         </div>
       )
