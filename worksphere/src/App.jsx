@@ -106,6 +106,7 @@ export default function App() {
             <Route path="conges" element={<Conges />} />
             <Route path="candidats" element={<Candidats />} />
             <Route path="candidats-phase2" element={<CandidatsPhase2 />} />
+            <Route path="phase3" element={<RHMeetings />} />
             <Route path="meetings" element={<RHMeetings />} />
             <Route path="meetings/:id" element={<RHMeetingRoom />} />
             <Route path="maladies" element={<Maladies />} />
