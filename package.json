@@ -6,5 +6,8 @@
     "dev:netlify": "npx netlify-cli dev",
     "build": "npm run build --prefix worksphere",
     "preview": "npm run preview --prefix worksphere"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.34"
   }
 }

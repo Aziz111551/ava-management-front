@@ -1,7 +1,15 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
+import { FilesetResolver, FaceLandmarker, ObjectDetector } from '@mediapipe/tasks-vision'
 import { verifyTechToken, techTestAI } from '../../services/techTestInvite'
+
+const MEDIAPIPE_WASM_URL =
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm'
+const FACE_LANDMARKER_MODEL_URL =
+  'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+const OBJECT_DETECTOR_MODEL_URL =
+  'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite'
 
 function isObjectLike(value) {
   return value != null && typeof value === 'object'
@@ -31,25 +39,34 @@ function formatValue(value) {
   }
 }
 
-function getLandmarkCenter(landmark) {
-  const points = Array.isArray(landmark?.locations) ? landmark.locations : []
-  if (!points.length) return null
-  const sum = points.reduce((acc, point) => ({ x: acc.x + (point?.x || 0), y: acc.y + (point?.y || 0) }), { x: 0, y: 0 })
-  return { x: sum.x / points.length, y: sum.y / points.length }
+function detectFaceOrientationFromMesh(landmarks) {
+  const nose = landmarks?.[1]
+  const leftEye = landmarks?.[33]
+  const rightEye = landmarks?.[263]
+  if (!nose || !leftEye || !rightEye) return 'unknown'
+  const eyeDistance = Math.abs(rightEye.x - leftEye.x) || 1
+  const eyeMidX = (leftEye.x + rightEye.x) / 2
+  const horizontalDrift = (nose.x - eyeMidX) / eyeDistance
+  if (horizontalDrift <= -0.12) return 'left'
+  if (horizontalDrift >= 0.12) return 'right'
+  return 'center'
 }
 
-function detectFaceOrientation(face) {
-  const landmarks = Array.isArray(face?.landmarks) ? face.landmarks : []
-  const leftEye = getLandmarkCenter(landmarks.find((item) => /left.*eye/i.test(item?.type || '')))
-  const rightEye = getLandmarkCenter(landmarks.find((item) => /right.*eye/i.test(item?.type || '')))
-  const nose = getLandmarkCenter(landmarks.find((item) => /nose/i.test(item?.type || '')))
-  if (!leftEye || !rightEye || !nose) return 'center'
-  const eyeDistance = Math.abs(rightEye.x - leftEye.x) || 1
-  const midX = (leftEye.x + rightEye.x) / 2
-  const drift = (nose.x - midX) / eyeDistance
-  if (drift <= -0.18) return 'left'
-  if (drift >= 0.18) return 'right'
-  return 'center'
+function detectionsContainPhone(detections) {
+  if (!Array.isArray(detections)) return false
+  return detections.some((detection) =>
+    Array.isArray(detection?.categories) &&
+    detection.categories.some((category) => {
+      const label = String(category?.categoryName || category?.displayName || '').toLowerCase()
+      const score = Number(category?.score || 0)
+      return score >= 0.35 && (
+        label.includes('phone') ||
+        label.includes('cell phone') ||
+        label.includes('mobile phone') ||
+        label.includes('telephone')
+      )
+    }),
+  )
 }
 
 function buildRunnableFunction(code, functionName) {
@@ -92,6 +109,9 @@ export default function TechnicalTestPage() {
   const stepRef = useRef(step)
   stepRef.current = step
   const cameraLockRef = useRef(false)
+  const faceLandmarkerRef = useRef(null)
+  const objectDetectorRef = useRef(null)
+  const visionInitPromiseRef = useRef(null)
 
   const stopMedia = useCallback(() => {
     if (!stream) return
@@ -109,6 +129,56 @@ export default function TechnicalTestPage() {
     },
     [],
   )
+
+  const initAdvancedSurveillance = useCallback(async () => {
+    if (faceLandmarkerRef.current && objectDetectorRef.current) return true
+    if (visionInitPromiseRef.current) return visionInitPromiseRef.current
+
+    visionInitPromiseRef.current = (async () => {
+      try {
+        setCameraSupport('loading')
+        setCameraStatus('Initialisation de la surveillance avancée…')
+        const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL)
+        const [faceLandmarker, objectDetector] = await Promise.all([
+          FaceLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: FACE_LANDMARKER_MODEL_URL,
+              delegate: 'GPU',
+            },
+            runningMode: 'VIDEO',
+            numFaces: 1,
+            minFaceDetectionConfidence: 0.6,
+            minFacePresenceConfidence: 0.6,
+            minTrackingConfidence: 0.6,
+          }),
+          ObjectDetector.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: OBJECT_DETECTOR_MODEL_URL,
+              delegate: 'GPU',
+            },
+            runningMode: 'VIDEO',
+            maxResults: 5,
+            scoreThreshold: 0.3,
+          }),
+        ])
+        faceLandmarkerRef.current = faceLandmarker
+        objectDetectorRef.current = objectDetector
+        setCameraSupport('advanced')
+        setCameraStatus('Surveillance avancée active. Gardez votre visage bien en face.')
+        return true
+      } catch {
+        faceLandmarkerRef.current = null
+        objectDetectorRef.current = null
+        setCameraSupport('basic')
+        setCameraStatus('Caméra active. Surveillance avancée indisponible, contrôle basique actif.')
+        return false
+      } finally {
+        visionInitPromiseRef.current = null
+      }
+    })()
+
+    return visionInitPromiseRef.current
+  }, [])
 
   useEffect(() => {
     if (!token) {
@@ -152,11 +222,12 @@ export default function TechnicalTestPage() {
       }
       setMediaOk(true)
       setCameraStatus('Caméra et micro actifs.')
+      void initAdvancedSurveillance()
     } catch {
       setError('Caméra et micro obligatoires pour ce test.')
       setStep('error')
     }
-  }, [])
+  }, [initAdvancedSurveillance])
 
   const startTest = useCallback(async () => {
     setStep('generating')
@@ -244,6 +315,8 @@ export default function TechnicalTestPage() {
 
   useEffect(() => {
     return () => {
+      faceLandmarkerRef.current?.close?.()
+      objectDetectorRef.current?.close?.()
       if (stream) {
         stream.getTracks().forEach((t) => t.stop())
       }
@@ -273,49 +346,51 @@ export default function TechnicalTestPage() {
       audioTrack.onmute = () => stopFor('camera')
     }
 
-    if (!('FaceDetector' in window)) {
-      setCameraSupport('basic')
-      setCameraStatus('Caméra active. Surveillance basique active sur ce navigateur.')
-      timerId = window.setInterval(() => {
-        if (!videoTrack || videoTrack.readyState !== 'live') stopFor('camera')
-      }, 1000)
-      return () => {
-        cancelled = true
-        if (timerId) window.clearInterval(timerId)
-      }
-    }
-
-    setCameraSupport('advanced')
-    setCameraStatus('Caméra active. Gardez votre visage en face de l’écran.')
-    const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
-
     const inspectFace = async () => {
       if (cancelled || stepRef.current !== 'test') return
       const video = videoRef.current
       if (!video || video.readyState < 2) {
-        timerId = window.setTimeout(inspectFace, 1200)
+        timerId = window.setTimeout(inspectFace, 500)
+        return
+      }
+      if (!videoTrack || videoTrack.readyState !== 'live') {
+        stopFor('camera')
         return
       }
       try {
-        const faces = await detector.detect(video)
-        if (!faces.length) {
+        const ready = await initAdvancedSurveillance()
+        if (!ready || !faceLandmarkerRef.current || !objectDetectorRef.current) {
+          timerId = window.setTimeout(inspectFace, 700)
+          return
+        }
+
+        const now = performance.now()
+        const faceResult = faceLandmarkerRef.current.detectForVideo(video, now)
+        const landmarks = Array.isArray(faceResult?.faceLandmarks) ? faceResult.faceLandmarks : []
+        if (landmarks.length !== 1) {
           setCameraStatus('Visage non détecté. Regardez la caméra.')
           stopFor('face-missing')
           return
-        } else {
-          const orientation = detectFaceOrientation(faces[0])
-          if (orientation === 'left' || orientation === 'right') {
-            setCameraStatus(`Visage tourné vers la ${orientation === 'left' ? 'gauche' : 'droite'}. Revenez face caméra.`)
-            stopFor('face-turned')
-            return
-          } else {
-            setCameraStatus('Caméra active. Visage détecté.')
-          }
         }
+        const orientation = detectFaceOrientationFromMesh(landmarks[0])
+        if (orientation === 'left' || orientation === 'right') {
+          setCameraStatus(`Visage tourné vers la ${orientation === 'left' ? 'gauche' : 'droite'}. Revenez face caméra.`)
+          stopFor('face-turned')
+          return
+        }
+
+        const objectResult = objectDetectorRef.current.detectForVideo(video, now)
+        if (detectionsContainPhone(objectResult?.detections)) {
+          setCameraStatus('Téléphone détecté devant la caméra.')
+          stopFor('phone')
+          return
+        }
+
+        setCameraStatus('Surveillance avancée active. Visage détecté face caméra.')
       } catch {
-        setCameraStatus('Caméra active. Analyse visage momentanément indisponible.')
+        setCameraStatus('Caméra active. Analyse vidéo momentanément indisponible.')
       }
-      timerId = window.setTimeout(inspectFace, 1500)
+      timerId = window.setTimeout(inspectFace, 700)
     }
 
     inspectFace()
@@ -438,7 +513,7 @@ export default function TechnicalTestPage() {
     fontFamily: 'var(--font-body)',
   }
   const faceDetectorNote =
-    'Point important: la détection gauche/droite est plus fiable sur les navigateurs qui supportent FaceDetector (Chrome/Edge récents). Sinon, la page garde une surveillance basique caméra/micro active.'
+    'Point important: la surveillance avancée visage/téléphone est plus fiable sur les navigateurs modernes. Si elle ne peut pas être chargée, la page garde au minimum un contrôle basique caméra/micro actif.'
 
   if (step === 'loading') {
     return (
@@ -615,14 +690,16 @@ export default function TechnicalTestPage() {
       <div style={{ ...bg, maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{ color: 'var(--red)', fontFamily: 'var(--font-display)' }}>Test terminé</h1>
         <p style={{ marginTop: '16px', color: 'var(--text2)' }}>
-          {failReason === 'cheat'
-            ? 'Vous avez quitté le plein écran ou changé d’onglet : échec (anti-triche).'
+          {failReason === 'page'
+            ? 'Vous avez quitté la page, perdu le focus ou quitté le plein écran : échec (anti-triche).'
             : failReason === 'camera'
               ? 'La caméra ou le micro ont été coupés pendant le test.'
               : failReason === 'face-missing'
                 ? 'Votre visage n’a plus été détecté par la caméra.'
                 : failReason === 'face-turned'
-                  ? 'Vous avez trop longtemps détourné le visage de la caméra.'
+                  ? 'Votre visage n’était plus en face de la caméra.'
+                  : failReason === 'phone'
+                    ? 'Un téléphone a été détecté devant la caméra.'
                   : 'Temps écoulé.'}
         </p>
       </div>
@@ -761,8 +838,10 @@ export default function TechnicalTestPage() {
             </div>
             <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text3)', lineHeight: 1.5 }}>
               {cameraSupport === 'advanced'
-                ? 'Détection active: caméra ouverte, visage présent, tête non détournée.'
-                : 'Détection basique active: caméra et flux audio/vidéo obligatoires.'}
+                ? 'Détection avancée active: visage face caméra et recherche de téléphone dans le cadre.'
+                : cameraSupport === 'loading'
+                  ? 'Chargement de la détection avancée…'
+                  : 'Détection basique active: caméra et flux audio/vidéo obligatoires.'}
             </div>
             <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text3)', lineHeight: 1.6 }}>
               {faceDetectorNote}
