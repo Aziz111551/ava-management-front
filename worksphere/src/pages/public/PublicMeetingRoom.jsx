@@ -61,6 +61,7 @@ export default function PublicMeetingRoom() {
             role: meeting.participantRole || 'guest',
           }}
           accessToken={token}
+          showReport={false}
           onMeetingFinished={setMeeting}
         />
       </div>

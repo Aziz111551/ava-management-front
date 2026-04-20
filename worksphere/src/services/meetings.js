@@ -88,3 +88,12 @@ export async function fetchMeetingReport(id) {
   const res = await fetch(`${FN}/get-meeting-report?id=${encodeURIComponent(id)}`)
   return parseJson(res)
 }
+
+export async function saveMeetingDecision(payload) {
+  const res = await fetch(`${FN}/save-meeting-decision`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  return parseJson(res)
+}

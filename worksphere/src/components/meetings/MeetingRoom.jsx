@@ -36,6 +36,7 @@ export default function MeetingRoom({
   actor,
   backHref,
   canFinish = false,
+  showReport = true,
   onMeetingFinished,
   accessToken = '',
 }) {
@@ -254,7 +255,9 @@ export default function MeetingRoom({
       <SectionTitle
         action={
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <Pill type={reportBadge.type}>{reportBadge.text}</Pill>
+            <Pill type={showReport ? reportBadge.type : (meeting.status === 'completed' ? 'green' : joined ? 'amber' : 'cyan')}>
+              {showReport ? reportBadge.text : (meeting.status === 'completed' ? 'Réunion terminée' : joined ? 'Réunion en cours' : 'Réunion planifiée')}
+            </Pill>
             {backHref && (
               <Link to={backHref} style={{ textDecoration: 'none' }}>
                 <Btn small variant="ghost">
@@ -403,7 +406,7 @@ export default function MeetingRoom({
                 </div>
               </>
             )}
-            {meeting.status === 'completed' && !report && (
+            {showReport && meeting.status === 'completed' && !report && (
               <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
                 <Btn onClick={handleGenerateReport} disabled={!canGenerateReport || finishing}>
                   {finishing ? 'Génération…' : 'Générer le rapport IA'}
@@ -417,119 +420,121 @@ export default function MeetingRoom({
             )}
           </div>
 
-          <div
-            style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border2)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '16px',
-            }}
-          >
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '12px' }}>
-              Rapport IA
+          {showReport && (
+            <div
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--border2)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '16px',
+              }}
+            >
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '12px' }}>
+                Rapport IA
+              </div>
+              {!report ? (
+                <div style={{ fontSize: '13px', color: 'var(--text3)', lineHeight: 1.7 }}>
+                  {meeting.status === 'completed'
+                    ? 'Le rapport sera disponible dès que la transcription audio aura été résumée.'
+                    : 'Le rapport sera généré automatiquement à la fin de la réunion.'}
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+                    {report.title || 'Rapport de réunion'}
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
+                    {report.conciseReport || report.conversationSummary || report.summary || '—'}
+                  </div>
+                  {report.rating && (
+                    <div style={{ fontSize: '13px', color: 'var(--cyan2)', fontWeight: 700 }}>
+                      Niveau / appréciation: {report.rating}
+                    </div>
+                  )}
+                  {report.participantOpinion && (
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Avis sur le participant
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
+                        {report.participantOpinion}
+                      </div>
+                    </div>
+                  )}
+                  {Array.isArray(report.discussedTopics) && report.discussedTopics.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Sujets abordés
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
+                        {report.discussedTopics.map((item, index) => <li key={index}>{item}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(report.strengths) && report.strengths.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Points forts observés
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
+                        {report.strengths.map((item, index) => <li key={index}>{item}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(report.concerns) && report.concerns.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Points de vigilance
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
+                        {report.concerns.map((item, index) => <li key={index}>{item}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {report.recommendation && (
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Recommandation RH
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
+                        {report.recommendation}
+                      </div>
+                    </div>
+                  )}
+                  {decisionItems.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Décisions
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
+                        {decisionItems.map((item, index) => <li key={index}>{item}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(report.nextSteps) && report.nextSteps.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Prochaines étapes
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
+                        {report.nextSteps.map((item, index) => <li key={index}>{item}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {report.detailedReport && (
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Rapport détaillé
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                        {report.detailedReport}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {!report ? (
-              <div style={{ fontSize: '13px', color: 'var(--text3)', lineHeight: 1.7 }}>
-                {meeting.status === 'completed'
-                  ? 'Le rapport sera disponible dès que la transcription audio aura été résumée.'
-                  : 'Le rapport sera généré automatiquement à la fin de la réunion.'}
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
-                  {report.title || 'Rapport de réunion'}
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
-                  {report.conciseReport || report.conversationSummary || report.summary || '—'}
-                </div>
-                {report.rating && (
-                  <div style={{ fontSize: '13px', color: 'var(--cyan2)', fontWeight: 700 }}>
-                    Niveau / appréciation: {report.rating}
-                  </div>
-                )}
-                {report.participantOpinion && (
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Avis sur le participant
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
-                      {report.participantOpinion}
-                    </div>
-                  </div>
-                )}
-                {Array.isArray(report.discussedTopics) && report.discussedTopics.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Sujets abordés
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
-                      {report.discussedTopics.map((item, index) => <li key={index}>{item}</li>)}
-                    </ul>
-                  </div>
-                )}
-                {Array.isArray(report.strengths) && report.strengths.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Points forts observés
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
-                      {report.strengths.map((item, index) => <li key={index}>{item}</li>)}
-                    </ul>
-                  </div>
-                )}
-                {Array.isArray(report.concerns) && report.concerns.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Points de vigilance
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
-                      {report.concerns.map((item, index) => <li key={index}>{item}</li>)}
-                    </ul>
-                  </div>
-                )}
-                {report.recommendation && (
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Recommandation RH
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7 }}>
-                      {report.recommendation}
-                    </div>
-                  </div>
-                )}
-                {decisionItems.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Décisions
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
-                      {decisionItems.map((item, index) => <li key={index}>{item}</li>)}
-                    </ul>
-                  </div>
-                )}
-                {Array.isArray(report.nextSteps) && report.nextSteps.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Prochaines étapes
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.7 }}>
-                      {report.nextSteps.map((item, index) => <li key={index}>{item}</li>)}
-                    </ul>
-                  </div>
-                )}
-                {report.detailedReport && (
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Rapport détaillé
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      {report.detailedReport}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          )}
 
           <div
             style={{

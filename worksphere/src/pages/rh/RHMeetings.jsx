@@ -165,6 +165,15 @@ export default function RHMeetings() {
               ),
             },
             {
+              key: 'phase3Decision',
+              label: 'Phase 3',
+              render: (value) => (
+                <Pill type={value === 'accepted' ? 'green' : value === 'refused' ? 'red' : 'default'}>
+                  {value === 'accepted' ? 'Accepté' : value === 'refused' ? 'Refusé' : 'En attente'}
+                </Pill>
+              ),
+            },
+            {
               key: 'eventCount',
               label: 'Journal',
               render: (value) => <span style={{ fontSize: '12px', color: 'var(--text2)' }}>{value || 0} événements</span>,

@@ -34,13 +34,11 @@ export default function EmployeeMeetings() {
   }, [user?.email])
 
   const upcoming = meetings.filter((item) => item.status !== 'completed').length
-  const reports = meetings.filter((item) => item.reportStatus === 'ready').length
 
   return (
     <div>
-      <Grid cols={2} gap={12}>
+      <Grid cols={1} gap={12}>
         <StatCard label="Mes réunions à venir" value={loading ? '…' : upcoming} color="var(--cyan2)" />
-        <StatCard label="Rapports disponibles" value={loading ? '…' : reports} color="var(--green)" />
       </Grid>
 
       <SectionTitle action={<Btn small variant="ghost" onClick={load} disabled={loading}>Actualiser</Btn>}>
@@ -77,15 +75,6 @@ export default function EmployeeMeetings() {
               render: (value) => (
                 <Pill type={value === 'completed' ? 'green' : value === 'live' ? 'amber' : 'blue'}>
                   {value === 'completed' ? 'Terminée' : value === 'live' ? 'En cours' : 'Planifiée'}
-                </Pill>
-              ),
-            },
-            {
-              key: 'reportStatus',
-              label: 'Rapport',
-              render: (value) => (
-                <Pill type={value === 'ready' ? 'green' : value === 'running' ? 'amber' : 'default'}>
-                  {value === 'ready' ? 'Prêt' : value === 'running' ? 'En cours' : '—'}
                 </Pill>
               ),
             },

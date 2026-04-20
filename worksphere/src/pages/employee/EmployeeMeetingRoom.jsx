@@ -43,6 +43,7 @@ export default function EmployeeMeetingRoom() {
         role: 'employee',
       }}
       backHref="/employee/meetings"
+      showReport={false}
       onMeetingFinished={setMeeting}
     />
   )

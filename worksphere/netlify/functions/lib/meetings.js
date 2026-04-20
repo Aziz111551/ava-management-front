@@ -153,6 +153,10 @@ export function toMeetingSummary(record) {
     transcriptCount,
     eventCount,
     reportGeneratedAt: record.reportGeneratedAt || null,
+    phase3Decision: record.phase3Decision || null,
+    phase3DecisionAt: record.phase3DecisionAt || null,
+    phase3DecisionReason: record.phase3DecisionReason || '',
+    employeeAccount: record.employeeAccount || null,
     reportPreview: preview
       ? {
           title: preview.title || 'Rapport de réunion',
