@@ -1,12 +1,13 @@
 import { TECH_AUTO_PASS_MIN } from './candidatPipeline'
 
 /**
- * Convertit la réponse de get-tech-pipeline-state en index par id candidat / e-mail.
+ * Convertit la réponse de get-tech-pipeline-state en index par id candidat.
+ * En contexte n8n, on évite le fallback par e-mail pour ne pas mélanger
+ * plusieurs candidatures d'une même adresse.
  */
 export function buildRemoteLookup(entries) {
   const byId = {}
-  const byEmail = {}
-  if (!entries || typeof entries !== 'object') return { byId, byEmail }
+  if (!entries || typeof entries !== 'object') return { byId }
 
   for (const [key, val] of Object.entries(entries)) {
     if (!val || typeof val !== 'object') continue
@@ -16,24 +17,18 @@ export function buildRemoteLookup(entries) {
     if (key.startsWith('cand-')) {
       byId[key.slice(5)] = val
     }
-    if (key.startsWith('email-')) {
-      const em = String(val.email || '')
-        .trim()
-        .toLowerCase()
-      if (em) byEmail[em] = val
-    }
   }
-  return { byId, byEmail }
+  return { byId }
 }
 
 export async function fetchRemoteTechPipeline() {
   try {
     const res = await fetch('/.netlify/functions/get-tech-pipeline-state')
-    if (!res.ok) return { byId: {}, byEmail: {} }
+    if (!res.ok) return { byId: {} }
     const data = await res.json()
-    if (!data.ok) return { byId: {}, byEmail: {} }
+    if (!data.ok) return { byId: {} }
     return buildRemoteLookup(data.entries || {})
   } catch {
-    return { byId: {}, byEmail: {} }
+    return { byId: {} }
   }
 }

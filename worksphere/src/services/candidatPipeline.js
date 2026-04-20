@@ -59,14 +59,10 @@ export function setTechPassedWithSnapshot(id, row, opts = {}) {
   save(p)
 }
 
-function remoteEntryFor(remoteLookup, id, email) {
+function remoteEntryFor(remoteLookup, id) {
   if (!remoteLookup) return null
   const byId = remoteLookup.byId?.[id]
   if (byId && Number(byId.techTestScore) > TECH_AUTO_PASS_MIN) return byId
-  const em = (email || '').trim().toLowerCase()
-  if (!em) return null
-  const byE = remoteLookup.byEmail?.[em]
-  if (byE && Number(byE.techTestScore) > TECH_AUTO_PASS_MIN) return byE
   return null
 }
 
@@ -74,11 +70,11 @@ function isPhysicalDone(pipe, id) {
   return pipe[id]?.stage === 'physical_sent'
 }
 
-function isPromotedToPhase2(pipe, id, email, remoteLookup) {
+function isPromotedToPhase2(pipe, id, remoteLookup) {
   if (isPhysicalDone(pipe, id)) return false
   const st = pipe[id]?.stage
   if (st === 'tech_passed') return true
-  return Boolean(remoteEntryFor(remoteLookup, id, email))
+  return Boolean(remoteEntryFor(remoteLookup, id))
 }
 
 export function markPhysicalSent(id, { meetingAt, teamsUrl }) {
@@ -104,7 +100,7 @@ export function getPhase1Rows(rows, remoteLookup) {
     if (dec[r._id] === 'declined') return false
     const st = pipe[r._id]?.stage
     if (st === 'tech_passed' || st === 'physical_sent') return false
-    if (isPromotedToPhase2(pipe, r._id, r.email, remoteLookup)) return false
+    if (isPromotedToPhase2(pipe, r._id, remoteLookup)) return false
     return true
   })
 }
@@ -122,8 +118,8 @@ export function getPhase2Rows(rows, remoteLookup) {
   for (const r of rows) {
     if (dec[r._id] === 'declined') continue
     if (isPhysicalDone(pipe, r._id)) continue
-    if (!isPromotedToPhase2(pipe, r._id, r.email, remoteLookup)) continue
-    const remote = remoteEntryFor(remoteLookup, r._id, r.email)
+    if (!isPromotedToPhase2(pipe, r._id, remoteLookup)) continue
+    const remote = remoteEntryFor(remoteLookup, r._id)
     const tech =
       pipe[r._id]?.techTestScore ??
       (remote?.techTestScore != null ? Number(remote.techTestScore) : undefined)
@@ -138,10 +134,10 @@ export function getPhase2Rows(rows, remoteLookup) {
   for (const [id, entry] of Object.entries(pipe)) {
     if (dec[id] === 'declined') continue
     if (isPhysicalDone(pipe, id)) continue
-    if (!isPromotedToPhase2(pipe, id, entry.snapshot?.email, remoteLookup)) continue
+    if (!isPromotedToPhase2(pipe, id, remoteLookup)) continue
     if (seen.has(id)) continue
     if (entry.snapshot) {
-      const remote = remoteEntryFor(remoteLookup, id, entry.snapshot.email)
+      const remote = remoteEntryFor(remoteLookup, id)
       const tech =
         entry.techTestScore ??
         (remote?.techTestScore != null ? Number(remote.techTestScore) : undefined)
