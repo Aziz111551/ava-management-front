@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { addEmployee } from '../../services/api'
+import { sendCandidateRefusalEmail } from '../../services/candidateDecision'
 import { sendEmployeeWelcomeEmail } from '../../services/employeeWelcome'
 import { fetchMeeting } from '../../services/meetings'
 import { saveMeetingDecision } from '../../services/meetings'
@@ -61,6 +62,20 @@ export default function RHMeetingRoom() {
     if (!meeting) return
     setProcessingDecision(true)
     try {
+      let emailSent = false
+      let emailMessage = ''
+      try {
+        const mail = await sendCandidateRefusalEmail({
+          email: meeting.participantEmail,
+          name: meeting.participantName,
+          reason: decisionReason.trim() || 'Votre candidature n’a pas été retenue après la réunion finale.',
+        })
+        emailSent = !!mail.emailSent
+        emailMessage = mail.message || ''
+      } catch (err) {
+        emailMessage = err.message || 'Erreur lors de l’envoi de l’e-mail de refus.'
+      }
+
       const res = await saveMeetingDecision({
         meetingId: meeting.id,
         decision: 'refused',
@@ -68,9 +83,14 @@ export default function RHMeetingRoom() {
         actorName: user?.name || 'Responsable RH',
         actorEmail: user?.email || '',
         actorRole: 'rh',
+        employeeAccount: {
+          email: meeting.participantEmail,
+          emailSent,
+          emailMessage,
+        },
       })
       setMeeting(res.meeting)
-      alert('Décision refus enregistrée.')
+      alert(emailSent ? 'Décision refusée enregistrée et e-mail envoyé.' : `Décision refusée enregistrée. E-mail non envoyé: ${emailMessage || 'erreur inconnue'}`)
     } catch (err) {
       alert(err.message || 'Impossible d’enregistrer le refus.')
     } finally {
