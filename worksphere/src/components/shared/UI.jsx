@@ -131,23 +131,26 @@ export function Table({ columns, rows }) {
           <span key={c.key} style={{ fontSize: '11px', color: 'var(--cyan)', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{c.label}</span>
         ))}
       </div>
-      {rows.map((row, i) => (
-        <div key={i} style={{
-          display: 'grid',
-          gridTemplateColumns: columns.map(c => c.width || '1fr').join(' '),
-          padding: '13px 18px', borderTop: '1px solid var(--border)',
-          alignItems: 'center', transition: 'background 0.15s',
-        }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(32,178,170,0.05)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          {columns.map(c => (
-            <span key={c.key} style={{ fontSize: '13px', color: 'var(--text)' }}>
-              {c.render ? c.render(row[c.key], row) : row[c.key]}
-            </span>
-          ))}
-        </div>
-      ))}
+      {rows.map((row, i) => {
+        const rowKey = row?._id ?? row?.id ?? `row-${i}`
+        return (
+          <div key={rowKey} style={{
+            display: 'grid',
+            gridTemplateColumns: columns.map(c => c.width || '1fr').join(' '),
+            padding: '13px 18px', borderTop: '1px solid var(--border)',
+            alignItems: 'center', transition: 'background 0.15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(32,178,170,0.05)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            {columns.map(c => (
+              <span key={c.key} style={{ fontSize: '13px', color: 'var(--text)' }}>
+                {c.render ? c.render(row[c.key], row) : row[c.key]}
+              </span>
+            ))}
+          </div>
+        )
+      })}
       {rows.length === 0 && (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px' }}>
           No data

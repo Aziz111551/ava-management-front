@@ -71,6 +71,46 @@ async function openaiChat(messages, jsonMode = true) {
   return data.choices?.[0]?.message?.content || ''
 }
 
+function normalizeSampleTests(input) {
+  if (!Array.isArray(input)) return []
+  return input
+    .map((test, index) => {
+      const t = test && typeof test === 'object' ? test : {}
+      const args = Array.isArray(t.args) ? t.args : t.args != null ? [t.args] : []
+      return {
+        label: String(t.label || `Exemple ${index + 1}`).trim(),
+        args,
+        expected: t.expected,
+      }
+    })
+    .filter((test) => test.args.length > 0)
+    .slice(0, 5)
+}
+
+function normalizeExercise(exercise) {
+  const ex = exercise && typeof exercise === 'object' ? exercise : {}
+  const functionName = String(ex.functionName || '').trim() || 'solve'
+  const durationNum = Number(ex.durationMinutes)
+  const durationMinutes =
+    Number.isFinite(durationNum) && durationNum >= 30 && durationNum <= 60
+      ? Math.round(durationNum)
+      : 45
+
+  const starterCode =
+    typeof ex.starterCode === 'string' && ex.starterCode.trim()
+      ? ex.starterCode
+      : `function ${functionName}() {\n  // Votre code ici\n}\n`
+
+  return {
+    title: String(ex.title || 'Exercice JavaScript').trim(),
+    instructionsFr: String(ex.instructionsFr || '').trim(),
+    starterCode,
+    durationMinutes,
+    functionName,
+    sampleTests: normalizeSampleTests(ex.sampleTests),
+  }
+}
+
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' }
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' })
@@ -102,7 +142,7 @@ export const handler = async (event) => {
           {
             role: 'system',
             content:
-              'Tu es un recruteur technique. Réponds UNIQUEMENT en JSON valide, clés: title (string), instructionsFr (string détaillée), starterCode (string JS), durationMinutes (number 30-60). Exercice: problème JavaScript (tableaux/objets/async léger), niveau intermédiaire, sans accès réseau.',
+              'Tu es un recruteur technique. Réponds UNIQUEMENT en JSON valide avec les clés: title (string), instructionsFr (string détaillée), starterCode (string JavaScript exécutable), durationMinutes (number 30-60), functionName (string, nom exact de la fonction attendue), sampleTests (array de 2 à 4 objets { label, args, expected }). Les args doivent être 100% JSON sérialisables et fournis sous forme de tableau. Exercice: problème JavaScript (tableaux/objets/async léger), niveau intermédiaire, sans accès réseau.',
           },
           {
             role: 'user',
@@ -119,7 +159,7 @@ export const handler = async (event) => {
         return json(502, { ok: false, error: 'Réponse IA illisible' })
       }
 
-      return json(200, { ok: true, exercise })
+      return json(200, { ok: true, exercise: normalizeExercise(exercise) })
     }
 
     if (action === 'evaluate') {
