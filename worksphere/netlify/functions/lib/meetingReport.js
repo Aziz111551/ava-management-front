@@ -36,21 +36,34 @@ function transcriptToText(lines) {
     .join('\n')
 }
 
+function eventsToText(meeting) {
+  if (!Array.isArray(meeting.events)) return ''
+  return meeting.events
+    .map((event) => {
+      const actor = String(event.actorName || event.actorRole || '').trim()
+      const detail = String(event.detail || event.text || '').trim()
+      return `[${event.at || ''}] ${event.type}${actor ? ` · ${actor}` : ''}${detail ? ` · ${detail}` : ''}`
+    })
+    .filter(Boolean)
+    .join('\n')
+}
+
 export async function generateMeetingReport(meeting) {
   const transcriptText = transcriptToText(meeting.transcript)
-  if (!transcriptText) {
-    throw new Error('Aucune transcription audio disponible pour générer le rapport.')
+  const eventText = eventsToText(meeting)
+  const noteInitial = String(meeting.note || '').trim()
+  const noteClosing = String(meeting.closingNote || '').trim()
+  const hasNotes = Boolean(noteInitial || noteClosing)
+
+  if (!transcriptText && !eventText && !hasNotes) {
+    throw new Error(
+      'Pas assez de données pour le rapport : la transcription locale est vide (utilisez Chrome, autorisez le micro, et parlez après avoir rejoint la salle), et il n’y a ni journal d’événements ni note RH. Ajoutez une note de clôture puis relancez la génération.',
+    )
   }
-  const eventText = Array.isArray(meeting.events)
-    ? meeting.events
-        .map((event) => {
-          const actor = String(event.actorName || event.actorRole || '').trim()
-          const detail = String(event.detail || event.text || '').trim()
-          return `[${event.at || ''}] ${event.type}${actor ? ` · ${actor}` : ''}${detail ? ` · ${detail}` : ''}`
-        })
-        .filter(Boolean)
-        .join('\n')
-    : ''
+
+  const transcriptSection = transcriptText
+    ? `Transcription (texte capté dans le navigateur du RH) :\n${transcriptText}`
+    : `Transcription : NON DISPONIBLE. Ne pas inventer de dialogue. Rédige le rapport uniquement à partir du journal ci-dessous, des notes RH et des métadonnées ; indique explicitement dans conversationSummary et participantOpinion que la transcription audio n’a pas été captée.`
 
   const prompt = [
     {
@@ -60,7 +73,7 @@ export async function generateMeetingReport(meeting) {
     },
     {
       role: 'user',
-      content: `Réunion WorkSphere\nType: ${meeting.type}\nRH: ${meeting.rhName} <${meeting.rhEmail}>\nParticipant: ${meeting.participantName} <${meeting.participantEmail}>\nCréneau: ${meeting.scheduledAt}\nNote RH initiale: ${meeting.note || '—'}\nNote RH de clôture: ${meeting.closingNote || '—'}\n\nJournal:\n${eventText || '—'}\n\nTranscription complète:\n${transcriptText}\n\nConsignes de rapport:\n- résume précisément ce qui a été dit\n- liste les sujets réellement abordés\n- donne un avis argumenté sur le participant (employé ou candidat) basé sur la conversation\n- donne une recommandation RH claire\n- mentionne les moments clés et décisions concrètes`,
+      content: `Réunion WorkSphere\nType: ${meeting.type}\nRH: ${meeting.rhName} <${meeting.rhEmail}>\nParticipant: ${meeting.participantName} <${meeting.participantEmail}>\nCréneau: ${meeting.scheduledAt}\nNote RH initiale: ${noteInitial || '—'}\nNote RH de clôture: ${noteClosing || '—'}\n\nJournal:\n${eventText || '—'}\n\n${transcriptSection}\n\nConsignes de rapport:\n- résume ce qui est réellement documenté (journal / notes / transcription)\n- liste les sujets réellement abordés\n- donne un avis sur le participant en restant prudent si la transcription manque\n- donne une recommandation RH claire\n- mentionne les moments clés et décisions concrètes`,
     },
   ]
 
@@ -74,7 +87,8 @@ export async function generateMeetingReport(meeting) {
 
   return {
     generatedAt: new Date().toISOString(),
-    transcriptExcerpt: transcriptText.slice(0, 4000),
+    transcriptExcerpt: transcriptText ? transcriptText.slice(0, 4000) : '',
+    transcriptMissing: !transcriptText,
     eventExcerpt: eventText.slice(0, 2000),
     ...report,
   }

@@ -149,6 +149,7 @@ export function toMeetingSummary(record) {
     participantEmail: record.participantEmail,
     participantRole: record.participantRole,
     reportStatus: record.reportStatus || 'idle',
+    reportError: record.reportError || null,
     transcriptStatus: record.transcriptStatus || 'idle',
     transcriptCount,
     eventCount,

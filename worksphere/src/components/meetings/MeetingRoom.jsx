@@ -51,6 +51,10 @@ export default function MeetingRoom({
   const [activityLog, setActivityLog] = useState(Array.isArray(meeting.events) ? meeting.events : [])
   const [speechSupported, setSpeechSupported] = useState(true)
   const [speechState, setSpeechState] = useState('inactive')
+  const [transcriptLines, setTranscriptLines] = useState(() =>
+    Array.isArray(meeting.transcript) ? meeting.transcript.slice(-120) : [],
+  )
+  const [transcriptSaveError, setTranscriptSaveError] = useState('')
   const recognitionRef = useRef(null)
   const mountedRef = useRef(true)
 
@@ -67,7 +71,21 @@ export default function MeetingRoom({
     setReportStatus(meeting.reportStatus || 'idle')
     setReportError(meeting.reportError || '')
     setActivityLog(Array.isArray(meeting.events) ? meeting.events : [])
-  }, [meeting])
+  }, [
+    meeting.id,
+    meeting.summaryReport,
+    meeting.reportStatus,
+    meeting.reportError,
+    meeting.status,
+    meeting.updatedAt,
+    Array.isArray(meeting.events) ? meeting.events.length : 0,
+  ])
+
+  const serverTranscriptLen = Array.isArray(meeting.transcript) ? meeting.transcript.length : 0
+  useEffect(() => {
+    const next = Array.isArray(meeting.transcript) ? meeting.transcript : []
+    setTranscriptLines(next.slice(-120))
+  }, [meeting.id, serverTranscriptLen])
 
   const pushLocalEvent = async (type, detail) => {
     const optimistic = {
@@ -124,6 +142,15 @@ export default function MeetingRoom({
         }
       }
       for (const line of finals.map((item) => item.trim()).filter(Boolean)) {
+        const at = new Date().toISOString()
+        const optimistic = {
+          id: `local-${at}-${Math.random().toString(36).slice(2, 8)}`,
+          at,
+          speakerName: actor.name,
+          speakerEmail: actor.email,
+          speakerRole: actor.role,
+          text: line,
+        }
         try {
           await appendMeetingTranscript({
             meetingId: meeting.id,
@@ -133,8 +160,11 @@ export default function MeetingRoom({
             speakerRole: actor.role,
             text: line,
           })
-        } catch {
-          /* ignore transient transcript failures */
+          setTranscriptSaveError('')
+          setTranscriptLines((prev) => [...prev, optimistic].slice(-120))
+        } catch (err) {
+          setTranscriptSaveError(err.message || 'Impossible d’enregistrer cette phrase sur le serveur.')
+          void pushLocalEvent('transcript_save_failed', String(err.message || 'Échec enregistrement transcription.'))
         }
       }
     }
@@ -388,6 +418,64 @@ export default function MeetingRoom({
                 <strong>Note de départ:</strong> {meeting.note || '—'}
               </div>
             </div>
+
+            <div
+              style={{
+                marginTop: '14px',
+                padding: '12px',
+                background: 'rgba(32,178,170,0.06)',
+                borderRadius: '10px',
+                border: '1px solid var(--border2)',
+              }}
+            >
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>
+                Transcription en direct ({transcriptLines.length} ligne{transcriptLines.length !== 1 ? 's' : ''})
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.55, margin: '0 0 10px' }}>
+                S’affiche ici ce que le navigateur envoie au serveur via la reconnaissance vocale (micro de{' '}
+                <strong>cet appareil</strong>). Ce n’est pas la piste audio Jitsi : utilisez Chrome ou Edge, autorisez le
+                micro, et vérifiez la carte « Transcription locale : Active » après avoir rejoint la vidéo. Le candidat
+                peut ouvrir son lien d’invitation sur son propre navigateur pour que sa voix soit aussi transcrite.
+              </p>
+              {transcriptSaveError && (
+                <div style={{ fontSize: '12px', color: 'var(--red)', marginBottom: '8px', lineHeight: 1.5 }}>
+                  {transcriptSaveError}
+                </div>
+              )}
+              <div
+                style={{
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                  fontSize: '12px',
+                  color: 'var(--text2)',
+                  lineHeight: 1.5,
+                }}
+              >
+                {transcriptLines.length === 0 ? (
+                  <span style={{ color: 'var(--text3)' }}>
+                    Aucune phrase enregistrée pour l’instant — parlez une fois la transcription active, ou complétez la
+                    note de clôture pour le rapport IA.
+                  </span>
+                ) : (
+                  transcriptLines.map((row) => (
+                    <div
+                      key={row.id}
+                      style={{
+                        marginBottom: '8px',
+                        borderLeft: '2px solid var(--cyan2)',
+                        paddingLeft: '8px',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text3)', fontSize: '10px' }}>
+                        {(row.speakerName || 'Participant').trim()} ·{' '}
+                      </span>
+                      {row.text}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             {canFinish && meeting.status !== 'completed' && (
               <>
                 <div style={{ marginTop: '14px', fontSize: '12px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>

@@ -584,11 +584,33 @@ export default function RHMeetings() {
               {
                 key: 'phase3Decision',
                 label: 'Phase 3',
-                render: (value) => (
-                  <Pill type={value === 'accepted' ? 'green' : value === 'refused' ? 'red' : 'default'}>
-                    {value === 'accepted' ? 'Accepté' : value === 'refused' ? 'Refusé' : 'En attente'}
-                  </Pill>
-                ),
+                render: (value, row) => {
+                  if (row.type === 'employee_rh') {
+                    return (
+                      <span style={{ fontSize: '12px', color: 'var(--text3)' }} title="La décision finale (embauche) ne concerne que les réunions candidat Phase 2.">
+                        —
+                      </span>
+                    )
+                  }
+                  if (value === 'accepted') {
+                    return <Pill type="green">Accepté</Pill>
+                  }
+                  if (value === 'refused') {
+                    return <Pill type="red">Refusé</Pill>
+                  }
+                  if (row.reportStatus === 'ready') {
+                    return (
+                      <span title="Allez dans Phase 3 — Décision finale ou ouvrez la réunion pour Accepter / Refuser.">
+                        <Pill type="amber">À décider (RH)</Pill>
+                      </span>
+                    )
+                  }
+                  return (
+                    <span title="La décision RH est possible une fois le rapport IA prêt et la réunion traitée.">
+                      <Pill type="default">En attente</Pill>
+                    </span>
+                  )
+                },
               },
               {
                 key: 'eventCount',
