@@ -149,11 +149,13 @@ export function getPhase2Rows(rows, remoteLookup) {
       const tech =
         entry.techTestScore ??
         (remote?.techTestScore != null ? Number(remote.techTestScore) : undefined)
+      const snapName = entry.snapshot.name?.trim()
+      const snapEmail = entry.snapshot.email?.trim()
       result.push({
         _id: id,
-        name: entry.snapshot.name,
-        email: entry.snapshot.email,
-        position: entry.snapshot.position ?? '—',
+        name: snapName || (snapEmail ? snapEmail.split('@')[0] : 'Candidat'),
+        email: snapEmail || '—',
+        position: entry.snapshot.position?.trim() || 'Non renseigné',
         score: entry.snapshot.score ?? 0,
         cv: entry.snapshot.cv ?? '#',
         date: entry.updatedAt,
@@ -170,11 +172,13 @@ export function getPhase2Rows(rows, remoteLookup) {
       if (seen.has(id)) continue
       if (isPhysicalDone(pipe, id)) continue
       if (Number(rem.techTestScore) <= TECH_AUTO_PASS_MIN) continue
+      const remEmail = (rem.email || '').trim()
+      const remName = (rem.name || '').trim()
       result.push({
         _id: id,
-        name: rem.name || '—',
-        email: rem.email || '—',
-        position: '—',
+        name: remName || (remEmail ? remEmail.split('@')[0] : 'Candidat'),
+        email: remEmail || '—',
+        position: rem.position?.trim() || rem.jobTitle?.trim() || 'Non renseigné',
         score: 0,
         cv: '#',
         date: rem.updatedAt || new Date().toISOString(),

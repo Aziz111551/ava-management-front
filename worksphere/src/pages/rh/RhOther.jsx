@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { getReclamations, updateReclamation, getMaladies } from '../../services/api'
+import { getReclamations, updateReclamation, getMaladies, getEmployees } from '../../services/api'
 import { fetchEvaluations } from '../../services/evaluationsWebhook'
 import {
   filterNotDeclined,
@@ -78,20 +78,36 @@ function insertColumnAfter(columns, afterKey, col) {
   return [...columns.slice(0, i + 1), col, ...columns.slice(i + 1)]
 }
 
+function toggleEmployeeId(list, id) {
+  const s = String(id)
+  return list.includes(s) ? list.filter((x) => x !== s) : [...list, s]
+}
+
 const candidateColumns = (opts) => {
   const { onPdf } = opts
   return [
     {
       key: 'name',
       label: 'Candidat',
-      render: (v, row) => (
-        <div>
-          <div style={{ fontWeight: '500', color: 'var(--text)', fontSize: '13px' }}>{v}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{row.email || '—'}</div>
-        </div>
-      ),
+      render: (v, row) => {
+        const email = (row.email || '').trim()
+        const displayName = (v && String(v).trim()) || (email ? email.split('@')[0] : 'Candidat')
+        return (
+          <div>
+            <div style={{ fontWeight: '500', color: 'var(--text)', fontSize: '13px' }}>{displayName}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{email || '—'}</div>
+          </div>
+        )
+      },
     },
-    { key: 'position', label: 'Poste', render: (v) => <Pill type="blue">{v}</Pill> },
+    {
+      key: 'position',
+      label: 'Poste',
+      render: (v) => {
+        const label = (v && String(v).trim()) || 'Non renseigné'
+        return <Pill type="blue">{label}</Pill>
+      },
+    },
     {
       key: 'score',
       label: 'Score',
@@ -486,6 +502,8 @@ export function CandidatsPhase2() {
   const [scheduleRow, setScheduleRow] = useState(null)
   const [meetingLocal, setMeetingLocal] = useState('')
   const [rhNote, setRhNote] = useState('')
+  const [phase2Employees, setPhase2Employees] = useState([])
+  const [phase2SelectedEmployeeIds, setPhase2SelectedEmployeeIds] = useState([])
 
   const phase2Rows = useMemo(
     () => getPhase2Rows(cands, remoteLookup),
@@ -532,6 +550,23 @@ export function CandidatsPhase2() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    getEmployees()
+      .then((res) => {
+        if (!cancelled) {
+          const list = Array.isArray(res.data) ? res.data.filter((u) => u.role === 'employee') : []
+          setPhase2Employees(list)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPhase2Employees([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const openPdf = (href) => window.open(href, '_blank', 'noopener,noreferrer')
 
   const openSchedule = (row) => {
@@ -543,6 +578,7 @@ export function CandidatsPhase2() {
     setScheduleRow(row)
     setMeetingLocal(defaultMeetingDatetimeLocal())
     setRhNote('')
+    setPhase2SelectedEmployeeIds([])
   }
 
   const closeSchedule = () => {
@@ -554,12 +590,16 @@ export function CandidatsPhase2() {
     if (!scheduleRow) return
     const row = scheduleRow
     const email = (row.email || '').trim()
-    const name = row.name?.trim() || 'Candidat'
+    const name = (row.name && String(row.name).trim()) || (email ? email.split('@')[0] : 'Candidat')
     if (!meetingLocal) {
       alert('Choisissez la date et l’heure de l’entretien.')
       return
     }
     const meetingAtIso = new Date(meetingLocal).toISOString()
+    const panelStaff = phase2SelectedEmployeeIds
+      .map((id) => phase2Employees.find((e) => String(e._id) === id))
+      .filter(Boolean)
+      .map((e) => ({ name: e.name, email: e.email, participantId: e._id }))
     setProcessingId(row._id)
     try {
       const res = await createMeetingInvite({
@@ -568,6 +608,7 @@ export function CandidatsPhase2() {
         participantName: name,
         participantEmail: email,
         candidateId: row._id,
+        ...(panelStaff.length ? { employees: panelStaff } : {}),
         rhName: rhUser?.name || 'Responsable RH',
         rhEmail: rhUser?.email || '',
         scheduledAt: meetingAtIso,
@@ -576,10 +617,14 @@ export function CandidatsPhase2() {
       markPhysicalSent(row._id, { meetingAt: meetingAtIso, teamsUrl: res?.links?.guestRoom || '#' })
       setPipelineTick((t) => t + 1)
       setScheduleRow(null)
+      const extra =
+        panelStaff.length > 0
+          ? ` ${panelStaff.length} employé(s) invité(s) par e-mail.`
+          : ''
       alert(
         res.emailSent
-          ? res.message || 'Réunion Phase 2 créée et invitation envoyée.'
-          : `Réunion créée, mais e-mail non envoyé : ${res.message || 'erreur Resend'}`,
+          ? `${res.message || 'Réunion Phase 2 créée et invitations envoyées.'}${extra}`
+          : `Réunion créée, mais e-mail non envoyé : ${res.message || 'erreur Resend'}${extra}`,
       )
     } catch (err) {
       alert(err.message || "Impossible de créer la réunion intégrée.")
@@ -669,7 +714,9 @@ export function CandidatsPhase2() {
       <p style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '880px', lineHeight: 1.55, marginBottom: '18px' }}>
         Candidats ayant obtenu plus de {TECH_AUTO_PASS_MIN}/100 au test technique en ligne (sync Netlify), ou passage manuel depuis
         la Phase 1. Colonne <strong>Test technique</strong> : score IA obtenu sur l’exercice. Le bouton <strong>Meet</strong> crée
-        une réunion intégrée WorkSphere avec invitation envoyée automatiquement.
+        une réunion intégrée WorkSphere avec invitation au candidat ; vous pouvez y ajouter un ou plusieurs{' '}
+        <strong>employés</strong> (ex. senior) qui recevront le même créneau et leur lien personnel. La Phase 3 (décision
+        finale) reste liée à cette même réunion Phase 2.
       </p>
       {error && <div style={{ fontSize: '13px', color: 'var(--red)', marginBottom: '12px' }}>{error}</div>}
 
@@ -691,10 +738,63 @@ export function CandidatsPhase2() {
         {scheduleRow && (
           <>
             <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '14px', lineHeight: 1.5 }}>
-              <strong>{scheduleRow.name}</strong>
+              <strong>
+                {(scheduleRow.name && String(scheduleRow.name).trim()) ||
+                  (scheduleRow.email ? String(scheduleRow.email).split('@')[0] : 'Candidat')}
+              </strong>
               <br />
               <span style={{ color: 'var(--text3)' }}>{scheduleRow.email}</span>
             </p>
+            <Field label="Employés à inviter (optionnel — ex. senior, même salle Jitsi)">
+              <div
+                style={{
+                  border: '1px solid var(--border2)',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  maxHeight: '180px',
+                  overflowY: 'auto',
+                  background: 'var(--card)',
+                }}
+              >
+                {phase2Employees.length === 0 ? (
+                  <span style={{ fontSize: '12px', color: 'var(--text3)' }}>
+                    Aucun employé dans l’annuaire (API RH).
+                  </span>
+                ) : (
+                  phase2Employees.map((employee) => {
+                    const id = String(employee._id)
+                    const checked = phase2SelectedEmployeeIds.includes(id)
+                    return (
+                      <label
+                        key={employee._id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          color: 'var(--text)',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setPhase2SelectedEmployeeIds((prev) => toggleEmployeeId(prev, id))
+                          }
+                        />
+                        <span>
+                          {employee.name}{' '}
+                          <span style={{ color: 'var(--text3)', fontSize: '12px' }}>— {employee.email}</span>
+                        </span>
+                      </label>
+                    )
+                  })
+                )}
+              </div>
+            </Field>
             <Field label="Date et heure (entretien / test physique)">
               <input
                 type="datetime-local"

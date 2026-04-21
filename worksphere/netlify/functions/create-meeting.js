@@ -139,6 +139,9 @@ export const handler = async (event) => {
       return meetingJson(400, { ok: false, error: 'participantEmail invalide.' })
     }
     participantRole = cleanText(body.participantRole, 'candidate')
+    const panelEmployees = employeesPayload.map((e) => ({ ...e, role: 'employee' }))
+    const primaryLower = participantEmail.toLowerCase()
+    coParticipants = panelEmployees.filter((e) => e.email.toLowerCase() !== primaryLower)
   }
 
   const store = getMeetingStore(event)
@@ -160,9 +163,11 @@ export const handler = async (event) => {
   const createdDetail =
     type === 'employee_candidate_rh'
       ? `Réunion candidat + employé(s) : ${participantName}${coNames.length ? ` · Employés : ${coNames.join(', ')}` : ''}`
-      : coNames.length
-        ? `Réunion créée pour ${participantName} + ${coNames.length} autre(s) participant(s)`
-        : `Réunion créée pour ${participantName}`
+      : type === 'candidate_phase2' && coNames.length
+        ? `Phase 2 : ${participantName} · Employés invités : ${coNames.join(', ')}`
+        : coNames.length
+          ? `Réunion créée pour ${participantName} + ${coNames.length} autre(s) participant(s)`
+          : `Réunion créée pour ${participantName}`
 
   const record = {
     id,
@@ -228,9 +233,13 @@ export const handler = async (event) => {
     const intro =
       type === 'employee_candidate_rh'
         ? 'Cette réunion réunit le responsable RH, le candidat et le(s) employé(s) dans la même salle WorkSphere. Votre lien personnel est ci-dessous.'
-        : coParticipants.length > 0
-          ? 'Vous êtes invité(e) avec d’autres participants dans la même salle WorkSphere.'
-          : 'Votre réunion est planifiée directement dans l’application WorkSphere.'
+        : type === 'candidate_phase2' && coParticipants.length > 0
+          ? 'Réunion Phase 2 (test physique) : le RH, le candidat et des membres de l’équipe sont conviés dans la même salle WorkSphere. Votre lien personnel est ci-dessous.'
+          : type === 'candidate_phase2'
+            ? 'Réunion Phase 2 (test physique) planifiée dans WorkSphere.'
+            : coParticipants.length > 0
+              ? 'Vous êtes invité(e) avec d’autres participants dans la même salle WorkSphere.'
+              : 'Votre réunion est planifiée directement dans l’application WorkSphere.'
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#0b1220;">
