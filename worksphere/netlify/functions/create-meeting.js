@@ -26,6 +26,36 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
 }
 
+function normalizeInvitees(list) {
+  if (!Array.isArray(list)) return []
+  const out = []
+  for (const item of list) {
+    const name = cleanText(item?.name, '')
+    const email = cleanEmail(item?.email)
+    const participantId = cleanText(item?.participantId)
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue
+    out.push({
+      name: name || email.split('@')[0],
+      email,
+      participantId: participantId || null,
+      role: cleanText(item?.role, 'employee'),
+    })
+  }
+  return out
+}
+
+function dedupeInvitees(rows) {
+  const seen = new Set()
+  const out = []
+  for (const row of rows) {
+    const k = row.email.toLowerCase()
+    if (seen.has(k)) continue
+    seen.add(k)
+    out.push(row)
+  }
+  return out
+}
+
 async function sendResend({ to, subject, html, text }) {
   const key = (process.env.RESEND_API_KEY || '').trim()
   if (!key) return { ok: false, error: 'RESEND_API_KEY manquante.' }
@@ -70,20 +100,45 @@ export const handler = async (event) => {
   const note = cleanText(body.note)
   const rhName = cleanText(body.rhName, 'Responsable RH')
   const rhEmail = cleanEmail(body.rhEmail)
-  const participantName = cleanText(body.participantName, 'Participant')
-  const participantEmail = cleanEmail(body.participantEmail)
-  const participantRole = cleanText(body.participantRole, type === 'employee_rh' ? 'employee' : 'candidate')
+  let participantName = cleanText(body.participantName, 'Participant')
+  let participantEmail = cleanEmail(body.participantEmail)
+  let participantRole = cleanText(body.participantRole, type === 'employee_rh' ? 'employee' : 'candidate')
   const participantId = cleanText(body.participantId)
   const candidateId = cleanText(body.candidateId)
+  const employeesPayload = normalizeInvitees(body.employees)
+  const additionalEmployeesPayload = normalizeInvitees(body.additionalEmployees)
 
   if (!isValidMeetingType(type)) {
     return meetingJson(400, { ok: false, error: 'type invalide.' })
   }
-  if (!participantEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(participantEmail)) {
-    return meetingJson(400, { ok: false, error: 'participantEmail invalide.' })
-  }
   if (!scheduledAt || Number.isNaN(new Date(scheduledAt).getTime())) {
     return meetingJson(400, { ok: false, error: 'scheduledAt (ISO) requis.' })
+  }
+
+  let coParticipants = []
+
+  if (type === 'employee_candidate_rh') {
+    if (!participantEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(participantEmail)) {
+      return meetingJson(400, { ok: false, error: 'E-mail du candidat invalide.' })
+    }
+    if (!employeesPayload.length) {
+      return meetingJson(400, { ok: false, error: 'Au moins un employé est requis pour cette réunion.' })
+    }
+    participantRole = 'candidate'
+    coParticipants = employeesPayload.map((e) => ({ ...e, role: 'employee' }))
+  } else if (type === 'employee_rh') {
+    if (!participantEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(participantEmail)) {
+      return meetingJson(400, { ok: false, error: 'participantEmail invalide.' })
+    }
+    participantRole = cleanText(body.participantRole, 'employee')
+    coParticipants = additionalEmployeesPayload.map((e) => ({ ...e, role: 'employee' }))
+    const primaryLower = participantEmail.toLowerCase()
+    coParticipants = coParticipants.filter((e) => e.email.toLowerCase() !== primaryLower)
+  } else {
+    if (!participantEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(participantEmail)) {
+      return meetingJson(400, { ok: false, error: 'participantEmail invalide.' })
+    }
+    participantRole = cleanText(body.participantRole, 'candidate')
   }
 
   const store = getMeetingStore(event)
@@ -101,6 +156,14 @@ export const handler = async (event) => {
     secret,
   )
 
+  const coNames = coParticipants.map((c) => c.name).filter(Boolean)
+  const createdDetail =
+    type === 'employee_candidate_rh'
+      ? `Réunion candidat + employé(s) : ${participantName}${coNames.length ? ` · Employés : ${coNames.join(', ')}` : ''}`
+      : coNames.length
+        ? `Réunion créée pour ${participantName} + ${coNames.length} autre(s) participant(s)`
+        : `Réunion créée pour ${participantName}`
+
   const record = {
     id,
     type,
@@ -117,13 +180,14 @@ export const handler = async (event) => {
     participantRole,
     participantId: participantId || null,
     candidateId: candidateId || null,
+    coParticipants,
     transcript: [],
     events: [
       createMeetingEvent('meeting_created', {
         actorName: rhName,
         actorEmail: rhEmail,
         actorRole: 'rh',
-        detail: `Réunion créée pour ${participantName}`,
+        detail: createdDetail,
       }),
     ],
     summaryReport: null,
@@ -148,19 +212,33 @@ export const handler = async (event) => {
     minute: '2-digit',
   })
 
-  const subject =
-    type === 'employee_rh'
-      ? 'WorkSphere — Réunion RH dans l’application'
-      : 'AVA Management — Phase 2 : réunion intégrée WorkSphere'
+  const invitees = dedupeInvitees([
+    { email: participantEmail, name: participantName, role: participantRole },
+    ...coParticipants.map((c) => ({ email: c.email, name: c.name, role: c.role || 'employee' })),
+  ])
 
-  const html = `<!DOCTYPE html>
+  const subject =
+    type === 'employee_candidate_rh'
+      ? 'WorkSphere — Réunion : RH, candidat et employé(s)'
+      : type === 'employee_rh'
+        ? 'WorkSphere — Réunion RH dans l’application'
+        : 'AVA Management — Phase 2 : réunion intégrée WorkSphere'
+
+  function buildInviteEmail(invName, guestLink) {
+    const intro =
+      type === 'employee_candidate_rh'
+        ? 'Cette réunion réunit le responsable RH, le candidat et le(s) employé(s) dans la même salle WorkSphere. Votre lien personnel est ci-dessous.'
+        : coParticipants.length > 0
+          ? 'Vous êtes invité(e) avec d’autres participants dans la même salle WorkSphere.'
+          : 'Votre réunion est planifiée directement dans l’application WorkSphere.'
+    const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#0b1220;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#111827;border-radius:18px;border:1px solid #1f2937;">
 <tr><td style="padding:28px 26px 8px;">
   <p style="margin:0;font-size:20px;font-weight:bold;color:#f8fafc;font-family:Arial,sans-serif;">${escapeHtml(subject)}</p>
   <p style="margin:10px 0 0;font-size:14px;line-height:1.6;color:#cbd5e1;font-family:Arial,sans-serif;">
-    Bonjour ${escapeHtml(participantName)}, votre réunion est planifiée directement dans l’application WorkSphere.
+    Bonjour ${escapeHtml(invName)}, ${escapeHtml(intro)}
   </p>
 </td></tr>
 <tr><td style="padding:14px 26px;">
@@ -171,47 +249,58 @@ export const handler = async (event) => {
   </div>
 </td></tr>
 <tr><td style="padding:10px 26px 4px;">
-  <a href="${escapeHtml(links.guestRoom)}" style="display:inline-block;padding:13px 18px;background:#20b2aa;color:#fff;text-decoration:none;border-radius:10px;font-weight:bold;font-size:14px;font-family:Arial,sans-serif;">Rejoindre la réunion dans WorkSphere</a>
+  <a href="${escapeHtml(guestLink)}" style="display:inline-block;padding:13px 18px;background:#20b2aa;color:#fff;text-decoration:none;border-radius:10px;font-weight:bold;font-size:14px;font-family:Arial,sans-serif;">Rejoindre la réunion dans WorkSphere</a>
 </td></tr>
 <tr><td style="padding:10px 26px 26px;">
-  <p style="margin:0;font-size:11px;color:#64748b;word-break:break-all;font-family:Arial,sans-serif;">${escapeHtml(links.guestRoom)}</p>
+  <p style="margin:0;font-size:11px;color:#64748b;word-break:break-all;font-family:Arial,sans-serif;">${escapeHtml(guestLink)}</p>
 </td></tr>
 </table>
 </body></html>`
-
-  const text = `Bonjour ${participantName},\n\nVotre réunion WorkSphere est planifiée pour ${dateLabel}.\nLien de jointure : ${links.guestRoom}\n${note ? `\nNote RH : ${note}\n` : '\n'}`
-
-  let emailResult = { ok: false, error: 'Envoi non tenté.' }
-  try {
-    emailResult = await sendResend({
-      to: participantEmail,
-      subject,
-      html,
-      text,
-    })
-  } catch (err) {
-    emailResult = { ok: false, error: err?.message || 'Erreur Resend.' }
+    const text = `Bonjour ${invName},\n\n${intro}\n\nCréneau : ${dateLabel}\nLien personnel : ${guestLink}\n${note ? `\nNote RH : ${note}\n` : '\n'}`
+    return { html, text }
   }
 
-  const finalMeeting = await appendMeetingEvent(
-    store,
-    saved,
-    createMeetingEvent(emailResult.ok ? 'invitation_sent' : 'invitation_failed', {
-      actorName: rhName,
-      actorEmail: rhEmail,
-      actorRole: 'rh',
-      detail: emailResult.ok
-        ? `Invitation envoyée à ${participantEmail}`
-        : `Échec d’envoi à ${participantEmail}: ${emailResult.error || 'erreur inconnue'}`,
-    }),
-  )
+  let finalMeeting = saved
+  let allEmailsOk = true
+  let lastEmailError = ''
+
+  for (const inv of invitees) {
+    const tokenInv = signMeetingJoinToken(
+      { mid: id, role: inv.role, email: inv.email, name: inv.name, type },
+      secret,
+    )
+    const guestLink = `${siteUrl}/meeting/join?token=${encodeURIComponent(tokenInv)}`
+    const { html, text } = buildInviteEmail(inv.name, guestLink)
+    let emailResult = { ok: false, error: 'Envoi non tenté.' }
+    try {
+      emailResult = await sendResend({ to: inv.email, subject, html, text })
+    } catch (err) {
+      emailResult = { ok: false, error: err?.message || 'Erreur Resend.' }
+    }
+    if (!emailResult.ok) {
+      allEmailsOk = false
+      lastEmailError = emailResult.error || 'Erreur envoi'
+    }
+    finalMeeting = await appendMeetingEvent(
+      store,
+      finalMeeting,
+      createMeetingEvent(emailResult.ok ? 'invitation_sent' : 'invitation_failed', {
+        actorName: rhName,
+        actorEmail: rhEmail,
+        actorRole: 'rh',
+        detail: emailResult.ok
+          ? `Invitation envoyée à ${inv.email} (${inv.name})`
+          : `Échec d’envoi à ${inv.email}: ${emailResult.error || 'erreur inconnue'}`,
+      }),
+    )
+  }
 
   return meetingJson(200, {
     ok: true,
     meeting: toMeetingSummary(finalMeeting),
     links,
     guestToken,
-    emailSent: emailResult.ok,
-    message: emailResult.ok ? 'Réunion créée et invitation envoyée.' : emailResult.error,
+    emailSent: allEmailsOk,
+    message: allEmailsOk ? 'Réunion créée et invitations envoyées.' : lastEmailError,
   })
 }

@@ -53,9 +53,17 @@ function canPhase3Decide(item) {
 }
 
 const EMPTY_FORM = {
-  employeeId: '',
+  employeesOnly: false,
+  candidateName: '',
+  candidateEmail: '',
+  selectedEmployeeIds: [],
   scheduledAt: '',
   note: '',
+}
+
+function toggleId(list, id) {
+  const s = String(id)
+  return list.includes(s) ? list.filter((x) => x !== s) : [...list, s]
 }
 
 const EMPLOYEE_TYPES = ['Developer', 'Sales', 'Marketing', 'Manager', 'HR', 'Designer', 'Accountant']
@@ -101,11 +109,6 @@ export default function RHMeetings() {
     load()
   }, [])
 
-  const selectedEmployee = useMemo(
-    () => employees.find((item) => String(item._id) === form.employeeId),
-    [employees, form.employeeId],
-  )
-
   const meetingStats = {
     upcoming: meetings.filter((item) => item.status === 'scheduled').length,
     live: meetings.filter((item) => item.status === 'live').length,
@@ -142,28 +145,59 @@ export default function RHMeetings() {
   const hasOnlyEmployeeMeetings =
     meetings.length > 0 && meetings.every((m) => m.type === 'employee_rh') && phase3Pool.length === 0
 
-  const createEmployeeMeeting = async () => {
-    if (!selectedEmployee) {
-      alert('Choisissez un employé.')
-      return
-    }
+  const createIntegratedMeeting = async () => {
     if (!form.scheduledAt) {
       alert('Choisissez la date et l’heure.')
       return
     }
+    const picked = form.selectedEmployeeIds
+      .map((id) => employees.find((item) => String(item._id) === id))
+      .filter(Boolean)
+    if (!picked.length) {
+      alert('Sélectionnez au moins un employé.')
+      return
+    }
+    if (!form.employeesOnly) {
+      const cn = form.candidateName.trim()
+      const ce = form.candidateEmail.trim().toLowerCase()
+      if (!cn || !ce) {
+        alert('Renseignez le nom et l’e-mail du candidat, ou cochez « Réunion employés uniquement ».')
+        return
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ce)) {
+        alert('E-mail candidat invalide.')
+        return
+      }
+    }
     setSending(true)
     try {
-      await createMeetingInvite({
-        type: 'employee_rh',
-        participantRole: 'employee',
-        participantId: selectedEmployee._id,
-        participantName: selectedEmployee.name,
-        participantEmail: selectedEmployee.email,
-        rhName: rhUser?.name || 'Responsable RH',
-        rhEmail: rhUser?.email || '',
-        scheduledAt: new Date(form.scheduledAt).toISOString(),
-        note: form.note.trim() || undefined,
-      })
+      if (form.employeesOnly) {
+        const [first, ...rest] = picked
+        await createMeetingInvite({
+          type: 'employee_rh',
+          participantRole: 'employee',
+          participantId: first._id,
+          participantName: first.name,
+          participantEmail: first.email,
+          additionalEmployees: rest.map((e) => ({ name: e.name, email: e.email, participantId: e._id })),
+          rhName: rhUser?.name || 'Responsable RH',
+          rhEmail: rhUser?.email || '',
+          scheduledAt: new Date(form.scheduledAt).toISOString(),
+          note: form.note.trim() || undefined,
+        })
+      } else {
+        await createMeetingInvite({
+          type: 'employee_candidate_rh',
+          participantName: form.candidateName.trim(),
+          participantEmail: form.candidateEmail.trim().toLowerCase(),
+          participantRole: 'candidate',
+          employees: picked.map((e) => ({ name: e.name, email: e.email, participantId: e._id })),
+          rhName: rhUser?.name || 'Responsable RH',
+          rhEmail: rhUser?.email || '',
+          scheduledAt: new Date(form.scheduledAt).toISOString(),
+          note: form.note.trim() || undefined,
+        })
+      }
       setForm(EMPTY_FORM)
       setOpenModal(false)
       await load()
@@ -328,7 +362,7 @@ export default function RHMeetings() {
             </Btn>
             {!isPhase3Page && (
               <Btn small onClick={() => setOpenModal(true)}>
-                Nouvelle réunion employé
+                Nouvelle réunion intégrée
               </Btn>
             )}
           </div>
@@ -556,10 +590,21 @@ export default function RHMeetings() {
               {
                 key: 'type',
                 label: 'Type',
-                render: (value) => (
-                  <Pill type={value === 'employee_rh' ? 'blue' : 'cyan'}>
-                    {value === 'employee_rh' ? 'RH ↔ Employé' : 'RH ↔ Candidat'}
-                  </Pill>
+                render: (value, row) => (
+                  <div>
+                    <Pill type={value === 'employee_rh' ? 'blue' : value === 'employee_candidate_rh' ? 'cyan' : 'cyan'}>
+                      {value === 'employee_rh'
+                        ? 'RH ↔ Employé(s)'
+                        : value === 'employee_candidate_rh'
+                          ? 'RH · Candidat + employé(s)'
+                          : 'RH ↔ Candidat'}
+                    </Pill>
+                    {row.coParticipantCount > 0 && (
+                      <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px' }}>
+                        +{row.coParticipantCount} invité(s) en salle
+                      </div>
+                    )}
+                  </div>
                 ),
               },
               { key: 'scheduledAt', label: 'Créneau', render: (value) => fmtDate(value) },
@@ -585,7 +630,7 @@ export default function RHMeetings() {
                 key: 'phase3Decision',
                 label: 'Phase 3',
                 render: (value, row) => {
-                  if (row.type === 'employee_rh') {
+                  if (row.type === 'employee_rh' || row.type === 'employee_candidate_rh') {
                     return (
                       <span style={{ fontSize: '12px', color: 'var(--text3)' }} title="La décision finale (embauche) ne concerne que les réunions candidat Phase 2.">
                         —
@@ -658,7 +703,12 @@ export default function RHMeetings() {
                           {item.participantName}
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>
-                          {item.type === 'employee_rh' ? 'Réunion RH ↔ employé' : 'Réunion RH ↔ candidat'} · {fmtDate(item.scheduledAt)}
+                          {item.type === 'employee_rh'
+                            ? 'Réunion RH ↔ employé(s)'
+                            : item.type === 'employee_candidate_rh'
+                              ? 'Réunion RH · candidat + employé(s)'
+                              : 'Réunion RH ↔ candidat'}{' '}
+                          · {fmtDate(item.scheduledAt)}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -709,20 +759,84 @@ export default function RHMeetings() {
         </>
       )}
 
-      <Modal open={openModal} onClose={() => !sending && setOpenModal(false)} title="Nouvelle réunion RH ↔ employé">
-        <Field label="Employé">
-          <select
-            style={inputStyle}
-            value={form.employeeId}
-            onChange={(e) => setForm((prev) => ({ ...prev, employeeId: e.target.value }))}
+      <Modal open={openModal} onClose={() => !sending && setOpenModal(false)} title="Nouvelle réunion intégrée">
+        <p style={{ fontSize: '12px', color: 'var(--text3)', lineHeight: 1.55, margin: '0 0 14px' }}>
+          Par défaut : une salle <strong>RH + candidat + employé(s)</strong> (même lien Jitsi, invitations e-mail pour
+          chacun). Cochez « Employés uniquement » pour une réunion sans candidat.
+        </p>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', cursor: 'pointer', fontSize: '13px', color: 'var(--text2)' }}>
+          <input
+            type="checkbox"
+            checked={form.employeesOnly}
+            onChange={(e) => setForm((prev) => ({ ...prev, employeesOnly: e.target.checked }))}
+          />
+          Réunion employés uniquement (pas de candidat)
+        </label>
+        {!form.employeesOnly && (
+          <>
+            <Field label="Candidat — nom">
+              <input
+                style={inputStyle}
+                value={form.candidateName}
+                onChange={(e) => setForm((prev) => ({ ...prev, candidateName: e.target.value }))}
+                placeholder="Nom complet du candidat"
+              />
+            </Field>
+            <Field label="Candidat — e-mail">
+              <input
+                type="email"
+                style={inputStyle}
+                value={form.candidateEmail}
+                onChange={(e) => setForm((prev) => ({ ...prev, candidateEmail: e.target.value }))}
+                placeholder="email@exemple.com"
+              />
+            </Field>
+          </>
+        )}
+        <Field label="Employés (cochez un ou plusieurs)">
+          <div
+            style={{
+              border: '1px solid var(--border2)',
+              borderRadius: '10px',
+              padding: '10px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              background: 'var(--card)',
+            }}
           >
-            <option value="">Choisir un employé…</option>
-            {employees.map((employee) => (
-              <option key={employee._id} value={employee._id}>
-                {employee.name} — {employee.email}
-              </option>
-            ))}
-          </select>
+            {employees.length === 0 ? (
+              <span style={{ fontSize: '12px', color: 'var(--text3)' }}>Aucun employé dans l’annuaire.</span>
+            ) : (
+              employees.map((employee) => {
+                const id = String(employee._id)
+                const checked = form.selectedEmployeeIds.includes(id)
+                return (
+                  <label
+                    key={employee._id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 6px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      color: 'var(--text)',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setForm((prev) => ({ ...prev, selectedEmployeeIds: toggleId(prev.selectedEmployeeIds, id) }))}
+                    />
+                    <span>
+                      {employee.name} <span style={{ color: 'var(--text3)', fontSize: '12px' }}>— {employee.email}</span>
+                    </span>
+                  </label>
+                )
+              })
+            )}
+          </div>
         </Field>
         <Field label="Date et heure">
           <input
@@ -744,7 +858,7 @@ export default function RHMeetings() {
           <Btn variant="ghost" onClick={() => setOpenModal(false)} disabled={sending}>
             Annuler
           </Btn>
-          <Btn onClick={createEmployeeMeeting} disabled={sending}>
+          <Btn onClick={createIntegratedMeeting} disabled={sending}>
             {sending ? 'Création…' : 'Créer la réunion'}
           </Btn>
         </div>

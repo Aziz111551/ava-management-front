@@ -20,7 +20,9 @@ export const handler = async (event) => {
     const filtered = rows.filter((meeting) => {
       if (viewer === 'rh') return true
       if (!email) return false
-      return cleanEmail(meeting.participantEmail) === email || cleanEmail(meeting.rhEmail) === email
+      if (cleanEmail(meeting.participantEmail) === email || cleanEmail(meeting.rhEmail) === email) return true
+      const co = Array.isArray(meeting.coParticipants) ? meeting.coParticipants : []
+      return co.some((p) => cleanEmail(p.email) === email)
     })
 
     return meetingJson(200, {

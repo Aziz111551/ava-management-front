@@ -313,8 +313,18 @@ export default function MeetingRoom({
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
-                {meeting.type === 'employee_rh' ? 'Réunion RH ↔ employé' : 'Réunion RH ↔ candidat'}
+                {meeting.type === 'employee_rh'
+                  ? 'Réunion RH ↔ employé(s)'
+                  : meeting.type === 'employee_candidate_rh'
+                    ? 'Réunion RH · candidat + employé(s)'
+                    : 'Réunion RH ↔ candidat'}
               </div>
+              {Array.isArray(meeting.coParticipants) && meeting.coParticipants.length > 0 && (
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.55 }}>
+                  <strong>Aussi invité(s) :</strong>{' '}
+                  {meeting.coParticipants.map((p) => p.name || p.email).filter(Boolean).join(', ')}
+                </div>
+              )}
               <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>
                 {formatDate(meeting.scheduledAt)}
               </div>

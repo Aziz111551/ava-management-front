@@ -121,7 +121,7 @@ export async function listMeetings(store) {
 }
 
 export function isValidMeetingType(type) {
-  return type === 'candidate_phase2' || type === 'employee_rh'
+  return type === 'candidate_phase2' || type === 'employee_rh' || type === 'employee_candidate_rh'
 }
 
 export function createMeetingLinks(siteUrl, meeting, tokens) {
@@ -136,6 +136,14 @@ export function toMeetingSummary(record) {
   const transcriptCount = Array.isArray(record.transcript) ? record.transcript.length : 0
   const eventCount = Array.isArray(record.events) ? record.events.length : 0
   const preview = record.summaryReport || null
+  const coParticipants = Array.isArray(record.coParticipants)
+    ? record.coParticipants.map((p) => ({
+        name: p.name || '',
+        email: p.email || '',
+        participantId: p.participantId || null,
+        role: p.role || 'employee',
+      }))
+    : []
   return {
     id: record.id,
     type: record.type,
@@ -148,6 +156,8 @@ export function toMeetingSummary(record) {
     participantName: record.participantName,
     participantEmail: record.participantEmail,
     participantRole: record.participantRole,
+    coParticipants,
+    coParticipantCount: coParticipants.length,
     reportStatus: record.reportStatus || 'idle',
     reportError: record.reportError || null,
     transcriptStatus: record.transcriptStatus || 'idle',
