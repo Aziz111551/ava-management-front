@@ -185,7 +185,7 @@ export default function RHMeetingRoom() {
         onMeetingFinished={setMeeting}
       />
 
-      {meeting.type === 'candidate_phase2' && (
+      {(meeting.type === 'candidate_phase2' || meeting.type === 'employee_candidate_rh') && (
         <div
           style={{
             marginTop: '18px',

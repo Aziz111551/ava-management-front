@@ -32,8 +32,9 @@ function buildAiSuggestion(item) {
   return recommendation || 'Décision IA disponible dans le rapport.'
 }
 
+/** Décision embauche : Phase 2 officielle ou réunion intégrée « candidat + employé(s) ». */
 function isPhase3CandidateMeeting(item) {
-  return item?.type === 'candidate_phase2'
+  return item?.type === 'candidate_phase2' || item?.type === 'employee_candidate_rh'
 }
 
 /** Candidats visibles en Phase 3 : entretien physique Phase 2, une fois la réunion close ou le rapport engagé. */
@@ -373,7 +374,7 @@ export default function RHMeetings() {
 
       <p style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '860px', lineHeight: 1.55, marginBottom: '16px' }}>
         {isPhase3Page
-          ? 'Phase 3 concerne uniquement les entretiens candidats créés depuis la Phase 2 (test physique). Dès que la réunion est clôturée par le RH, le candidat apparaît ici ; les boutons Accepter / Refuser sont actifs lorsque le rapport IA est prêt. Les réunions RH ↔ employé restent dans « Réunions intégrées ».'
+          ? 'Phase 3 regroupe les entretiens avec candidat : créés depuis la Phase 2 (test physique) ou depuis « Réunions intégrées » (candidat + employé(s)). Dès que la réunion est clôturée et le rapport IA prêt, vous pouvez décider ici. Les réunions RH ↔ employés seuls restent hors Phase 3.'
           : 'Cette vue centralise les réunions RH planifiées dans WorkSphere pour les candidats Phase 2 et les employés, avec accès à la salle intégrée et au rapport IA final.'}
       </p>
 
@@ -630,9 +631,9 @@ export default function RHMeetings() {
                 key: 'phase3Decision',
                 label: 'Phase 3',
                 render: (value, row) => {
-                  if (row.type === 'employee_rh' || row.type === 'employee_candidate_rh') {
+                  if (row.type === 'employee_rh') {
                     return (
-                      <span style={{ fontSize: '12px', color: 'var(--text3)' }} title="La décision finale (embauche) ne concerne que les réunions candidat Phase 2.">
+                      <span style={{ fontSize: '12px', color: 'var(--text3)' }} title="Pas de candidat : décision embauche Phase 3 non applicable.">
                         —
                       </span>
                     )
