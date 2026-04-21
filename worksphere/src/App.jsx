@@ -27,6 +27,9 @@ import AdminOverview from './pages/admin/AdminOverview'
 import AdminMeetHub from './pages/admin/AdminMeetHub'
 import AdminMessaging from './pages/admin/AdminMessaging'
 import AdminPayments from './pages/admin/AdminPayments'
+import AdminEmployees from './pages/admin/AdminEmployees'
+import AdminAIInsights from './pages/admin/AdminAIInsights'
+import AdminSettings from './pages/admin/AdminSettings'
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, loading } = useAuth()
@@ -131,8 +134,11 @@ export default function App() {
           }>
             <Route index element={<AdminOverview />} />
             <Route path="meet" element={<AdminMeetHub />} />
+            <Route path="employes" element={<AdminEmployees />} />
             <Route path="messages" element={<AdminMessaging />} />
             <Route path="payments" element={<AdminPayments />} />
+            <Route path="insights" element={<AdminAIInsights />} />
+            <Route path="parametres" element={<AdminSettings />} />
           </Route>
 
           {/* EMPLOYEE ROUTES */}
