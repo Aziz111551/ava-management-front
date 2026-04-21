@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { login as loginAPI, API_BASE_URL } from '../../services/api'
+import { getAdminCredentials, ADMIN_SESSION_TOKEN } from '../../config/adminLogin'
 import { AuroraBackdrop, StaggerReveal, StaggerItem } from '../../components/react-bits'
 
 export default function Login() {
@@ -28,6 +29,26 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
+      const adminCred = getAdminCredentials()
+      if (
+        adminCred &&
+        email.trim().toLowerCase() === adminCred.email.toLowerCase() &&
+        password === adminCred.password
+      ) {
+        login(
+          {
+            _id: 'admin-local',
+            name: 'Administrateur',
+            email: adminCred.email,
+            role: 'admin',
+            mustChangePassword: false,
+          },
+          ADMIN_SESSION_TOKEN,
+        )
+        navigate('/admin', { replace: true })
+        return
+      }
+
       const { data } = await loginAPI(email, password)
       login(data.user, data.token)
       if (data.user?.mustChangePassword) {
@@ -35,6 +56,7 @@ export default function Login() {
         return
       }
       if (data.user.role === 'rh') navigate('/rh')
+      else if (data.user.role === 'admin') navigate('/admin')
       else navigate('/employee')
     } catch (err) {
       if (!err.response) {

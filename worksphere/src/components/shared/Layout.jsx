@@ -3,13 +3,18 @@ import { useAuth } from '../../context/AuthContext'
 import NavIcon from './NavIcon'
 import { AnimatedPage } from '../react-bits'
 
-export default function Layout({ navItems, pageTitle, children }) {
+export default function Layout({ navItems, pageTitle, children, adminMode = false }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'
-  const roleBadge = user?.role === 'rh' ? 'HR' : (user?.employeeType || 'Employee')
+  const roleBadge =
+    user?.role === 'admin'
+      ? 'Admin'
+      : user?.role === 'rh'
+        ? 'HR'
+        : (user?.employeeType || 'Employee')
 
   const handleLogout = () => { logout(); navigate('/login') }
 
@@ -19,7 +24,9 @@ export default function Layout({ navItems, pageTitle, children }) {
       {/* SIDEBAR */}
       <aside style={{
         width: '256px', flexShrink: 0,
-        background: 'linear-gradient(180deg, rgba(10, 22, 38, 0.98) 0%, rgba(8, 18, 32, 0.96) 100%)',
+        background: adminMode
+          ? 'linear-gradient(180deg, rgba(22, 16, 42, 0.98) 0%, rgba(12, 10, 28, 0.96) 100%)'
+          : 'linear-gradient(180deg, rgba(10, 22, 38, 0.98) 0%, rgba(8, 18, 32, 0.96) 100%)',
         borderRight: '1px solid var(--border2)',
         display: 'flex', flexDirection: 'column',
         backdropFilter: 'blur(24px)',
@@ -35,15 +42,23 @@ export default function Layout({ navItems, pageTitle, children }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '10px',
-              background: 'var(--grad-cyan)',
+              background: adminMode
+                ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)'
+                : 'var(--grad-cyan)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--font-display)', fontWeight: '800',
               fontSize: '15px', color: '#fff',
-              boxShadow: '0 4px 16px rgba(32,178,170,0.4)',
+              boxShadow: adminMode
+                ? '0 4px 16px rgba(99,102,241,0.45)'
+                : '0 4px 16px rgba(32,178,170,0.4)',
             }}>A</div>
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: '800', fontSize: '15px', color: 'var(--text)', letterSpacing: '-0.3px', lineHeight: 1.1 }}>AVA</div>
-              <div style={{ fontSize: '10px', color: 'var(--cyan)', fontWeight: '500', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Management</div>
+              <div style={{
+                fontSize: '10px',
+                color: adminMode ? '#c4b5fd' : 'var(--cyan)',
+                fontWeight: '500', letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>{adminMode ? 'Administration' : 'Management'}</div>
             </div>
           </div>
         </div>
@@ -73,8 +88,14 @@ export default function Layout({ navItems, pageTitle, children }) {
                       fontSize: '13px', fontWeight: active ? '600' : '500',
                       color: active ? 'var(--text)' : 'var(--text2)',
                       cursor: 'pointer', borderRadius: 'var(--radius-sm)',
-                      background: active ? 'linear-gradient(90deg, rgba(32,178,170,0.18) 0%, rgba(32,178,170,0.06) 100%)' : 'transparent',
-                      border: active ? '1px solid rgba(32,178,170,0.35)' : '1px solid transparent',
+                      background: active
+                        ? (adminMode
+                          ? 'linear-gradient(90deg, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.08) 100%)'
+                          : 'linear-gradient(90deg, rgba(32,178,170,0.18) 0%, rgba(32,178,170,0.06) 100%)')
+                        : 'transparent',
+                      border: active
+                        ? (adminMode ? '1px solid rgba(129,140,248,0.45)' : '1px solid rgba(32,178,170,0.35)')
+                        : '1px solid transparent',
                       transition: 'all 0.18s ease',
                     }}
                     onMouseEnter={e => !active && (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
@@ -85,8 +106,9 @@ export default function Layout({ navItems, pageTitle, children }) {
                     {active && (
                       <div style={{
                         marginLeft: 'auto', width: '6px', height: '6px',
-                        borderRadius: '50%', background: 'var(--cyan)',
-                        boxShadow: '0 0 8px var(--cyan)',
+                        borderRadius: '50%',
+                        background: adminMode ? '#a78bfa' : 'var(--cyan)',
+                        boxShadow: adminMode ? '0 0 8px #818cf8' : '0 0 8px var(--cyan)',
                       }} />
                     )}
                   </div>
@@ -101,12 +123,13 @@ export default function Layout({ navItems, pageTitle, children }) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             padding: '10px 12px', borderRadius: 'var(--radius-sm)',
-            background: 'rgba(32,178,170,0.06)', border: '1px solid var(--border)',
+            background: adminMode ? 'rgba(99,102,241,0.1)' : 'rgba(32,178,170,0.06)',
+            border: '1px solid var(--border)',
             marginBottom: '10px',
           }}>
             <div style={{
               width: '34px', height: '34px', borderRadius: '50%',
-              background: 'var(--grad-cyan)',
+              background: adminMode ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)' : 'var(--grad-cyan)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '12px', fontWeight: '700', color: '#fff', flexShrink: 0,
             }}>{initials}</div>

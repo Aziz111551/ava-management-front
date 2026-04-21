@@ -9,6 +9,7 @@ export default function MustChangePasswordRedirect() {
   const location = useLocation()
 
   useEffect(() => {
+    if (user?.role === 'admin') return
     if (!user?.mustChangePassword) return
     if (location.pathname === '/first-password') return
     navigate('/first-password', { replace: true })

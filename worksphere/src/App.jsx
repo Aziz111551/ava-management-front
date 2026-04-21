@@ -22,6 +22,11 @@ import EmployeeMeetings from './pages/employee/EmployeeMeetings'
 import EmployeeMeetingRoom from './pages/employee/EmployeeMeetingRoom'
 import TechnicalTestPage from './pages/public/TechnicalTestPage'
 import PublicMeetingRoom from './pages/public/PublicMeetingRoom'
+import AdminLayout from './pages/admin/AdminLayout'
+import AdminOverview from './pages/admin/AdminOverview'
+import AdminMeetHub from './pages/admin/AdminMeetHub'
+import AdminMessaging from './pages/admin/AdminMessaging'
+import AdminPayments from './pages/admin/AdminPayments'
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, loading } = useAuth()
@@ -51,7 +56,9 @@ function ProtectedRoute({ children, requiredRole }) {
   )
   if (!user) return <Navigate to="/login" replace />
   if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to={user.role === 'rh' ? '/rh/calendrier' : '/employee/dashboard'} replace />
+    if (user.role === 'rh') return <Navigate to="/rh/calendrier" replace />
+    if (user.role === 'admin') return <Navigate to="/admin" replace />
+    return <Navigate to="/employee/dashboard" replace />
   }
   return children
 }
@@ -70,6 +77,7 @@ function RootRedirect() {
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
   if (user.role === 'rh') return <Navigate to="/rh/calendrier" replace />
+  if (user.role === 'admin') return <Navigate to="/admin" replace />
   return <Navigate to="/employee/dashboard" replace />
 }
 
@@ -111,6 +119,20 @@ export default function App() {
             <Route path="meetings/:id" element={<RHMeetingRoom />} />
             <Route path="maladies" element={<Maladies />} />
             <Route path="employes" element={<Employes />} />
+          </Route>
+
+          {/* ADMIN */}
+          <Route path="/admin" element={
+            <ProtectedRoute requiredRole="admin">
+              <Gate>
+                <AdminLayout />
+              </Gate>
+            </ProtectedRoute>
+          }>
+            <Route index element={<AdminOverview />} />
+            <Route path="meet" element={<AdminMeetHub />} />
+            <Route path="messages" element={<AdminMessaging />} />
+            <Route path="payments" element={<AdminPayments />} />
           </Route>
 
           {/* EMPLOYEE ROUTES */}

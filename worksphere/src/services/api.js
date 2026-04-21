@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { ADMIN_SESSION_TOKEN } from '../config/adminLogin'
 
 /** Base API : jamais localhost en prod dans le bundle si VITE_API_URL manque (évite un déploiement Netlify qui « tape le local »). */
 function normalizeApiBase(url) {
@@ -31,6 +32,10 @@ API.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
+      const t = localStorage.getItem('ws_token')
+      if (t === ADMIN_SESSION_TOKEN) {
+        return Promise.reject(err)
+      }
       localStorage.clear()
       window.location.href = '/login'
     }
