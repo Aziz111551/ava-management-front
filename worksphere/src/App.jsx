@@ -22,11 +22,6 @@ import EmployeeMeetings from './pages/employee/EmployeeMeetings'
 import EmployeeMeetingRoom from './pages/employee/EmployeeMeetingRoom'
 import TechnicalTestPage from './pages/public/TechnicalTestPage'
 import PublicMeetingRoom from './pages/public/PublicMeetingRoom'
-import AdminLayout from './pages/admin/AdminLayout'
-import AdminOverview from './pages/admin/AdminOverview'
-import AdminMeetHub from './pages/admin/AdminMeetHub'
-import AdminMessaging from './pages/admin/AdminMessaging'
-import AdminAIInsights from './pages/admin/AdminAIInsights'
 import AdminProRouter from './admin-pro/routes/AdminProRouter'
 
 function ProtectedRoute({ children, requiredRole }) {
@@ -122,19 +117,17 @@ export default function App() {
             <Route path="employes" element={<Employes />} />
           </Route>
 
-          {/* ADMIN */}
+          {/* ADMIN (legacy redirect to unified admin-pro navbar) */}
           <Route path="/admin" element={
             <ProtectedRoute requiredRole="admin">
-              <Gate>
-                <AdminLayout />
-              </Gate>
+              <Navigate to="/admin-pro" replace />
             </ProtectedRoute>
-          }>
-            <Route index element={<AdminOverview />} />
-            <Route path="meet" element={<AdminMeetHub />} />
-            <Route path="messages" element={<AdminMessaging />} />
-            <Route path="insights" element={<AdminAIInsights />} />
-          </Route>
+          } />
+          <Route path="/admin/*" element={
+            <ProtectedRoute requiredRole="admin">
+              <Navigate to="/admin-pro" replace />
+            </ProtectedRoute>
+          } />
 
           <Route path="/admin-pro/*" element={
             <ProtectedRoute requiredRole="admin">

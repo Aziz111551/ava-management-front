@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import AdminShell from '../layout/AdminShell'
 import DashboardPage from '../pages/DashboardPage'
 import UsersPage from '../pages/UsersPage'
+import AdminOverview from '../../pages/admin/AdminOverview'
+import AdminMeetHub from '../../pages/admin/AdminMeetHub'
+import AdminMessaging from '../../pages/admin/AdminMessaging'
 
 function TransitionWrapper({ children }) {
   return (
@@ -22,7 +25,10 @@ function AdminProContentRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route index element={<TransitionWrapper><DashboardPage /></TransitionWrapper>} />
+        <Route index element={<TransitionWrapper><AdminOverview /></TransitionWrapper>} />
+        <Route path="meet" element={<TransitionWrapper><AdminMeetHub /></TransitionWrapper>} />
+        <Route path="messages" element={<TransitionWrapper><AdminMessaging /></TransitionWrapper>} />
+        <Route path="dashboard" element={<TransitionWrapper><DashboardPage /></TransitionWrapper>} />
         <Route path="users" element={<TransitionWrapper><UsersPage /></TransitionWrapper>} />
         <Route path="*" element={<Navigate to="/admin-pro" replace />} />
       </Routes>
