@@ -9,13 +9,32 @@ const notificationsSeed = [
 ]
 
 export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar }) {
-  const { user, logout } = useAuth()
+  const { user, login, logout } = useAuth()
   const [openNotif, setOpenNotif] = useState(false)
   const [openProfile, setOpenProfile] = useState(false)
+  const adminSnapshot = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('ws_admin_snapshot')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  }, [user?.role])
+  const canBackToAdmin =
+    Boolean(adminSnapshot?.token && adminSnapshot?.user) &&
+    String(user?.role || '').toLowerCase() !== 'admin'
+  const adminOwnerLabel = adminSnapshot?.user?.name || adminSnapshot?.user?.email || 'Admin'
   const initials = useMemo(
     () => user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'AD',
     [user],
   )
+
+  const handleBackToAdmin = () => {
+    if (!adminSnapshot?.token || !adminSnapshot?.user) return
+    login(adminSnapshot.user, adminSnapshot.token)
+    localStorage.removeItem('ws_admin_snapshot')
+    window.location.href = '/admin-pro'
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
@@ -37,6 +56,30 @@ export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar 
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          {canBackToAdmin && (
+            <span
+              title="Impersonation active"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 text-amber-700 lg:hidden dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+            >
+              <i className="fa-solid fa-user-secret text-xs" aria-hidden />
+            </span>
+          )}
+          {canBackToAdmin && (
+            <span className="hidden items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 lg:inline-flex dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+              <i className="fa-solid fa-user-secret text-[10px]" aria-hidden />
+              Impersonation active
+            </span>
+          )}
+          {canBackToAdmin && (
+            <button
+              type="button"
+              onClick={handleBackToAdmin}
+              className="rounded-xl border border-primary-300 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 transition hover:bg-primary-100 dark:border-primary-800 dark:bg-primary-900/40 dark:text-primary-200 dark:hover:bg-primary-900/60"
+              title={`Retour vers la session de ${adminOwnerLabel}`}
+            >
+              Back to Admin
+            </button>
+          )}
           <button
             type="button"
             onClick={onToggleDark}

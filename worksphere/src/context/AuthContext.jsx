@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem('ws_token')
     localStorage.removeItem('ws_user')
+    localStorage.removeItem('ws_admin_snapshot')
     setUser(null)
   }
 

@@ -12,16 +12,52 @@ import {
   deleteUserApi,
   getAdminPermissionsApi,
   getUsersApi,
+  impersonateUserApi,
   updateUserApi,
 } from '../../services/adminProApi'
 
+function toTimestamp(value) {
+  if (!value) return 0
+  const t = new Date(value).getTime()
+  return Number.isFinite(t) ? t : 0
+}
+
+function pickUserDate(row, keys) {
+  for (const k of keys) {
+    const v = row?.[k] ?? row?._raw?.[k]
+    if (v) return v
+  }
+  return ''
+}
+
+function formatDateTime(value) {
+  const ts = toTimestamp(value)
+  if (!ts) return '—'
+  return new Date(ts).toLocaleString('fr-FR')
+}
+
+function csvCell(value) {
+  const v = String(value ?? '')
+  return `"${v.replaceAll('"', '""')}"`
+}
+
+function getLandingByRole(role) {
+  if (role === 'rh') return '/rh'
+  if (role === 'admin') return '/admin-pro'
+  return '/employee'
+}
+
+const ADMIN_SNAPSHOT_KEY = 'ws_admin_snapshot'
+
 export default function UsersPage() {
-  const { user } = useAuth()
+  const { user, login } = useAuth()
   const [users, setUsers] = useState(usersSeed)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [limit] = useState(8)
   const [total, setTotal] = useState(usersSeed.length)
@@ -30,8 +66,10 @@ export default function UsersPage() {
   const [sortDir, setSortDir] = useState('asc')
   const [permissions, setPermissions] = useState([])
   const [selected, setSelected] = useState(null)
+  const [quickView, setQuickView] = useState(null)
+  const [impersonating, setImpersonating] = useState(false)
   const [open, setOpen] = useState(false)
-  const [mode, setMode] = useState('view')
+  const [mode, setMode] = useState('create')
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -139,15 +177,31 @@ export default function UsersPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [search])
+  }, [search, roleFilter, statusFilter])
 
   const filteredUsers = useMemo(() => {
-    return users
-  }, [users, search])
+    return users.filter((u) => {
+      const roleMatch = roleFilter === 'all' || String(u.role || '').toLowerCase() === roleFilter
+      const statusMatch = statusFilter === 'all' || String(u.status || '').toLowerCase() === statusFilter
+      return roleMatch && statusMatch
+    })
+  }, [users, roleFilter, statusFilter])
 
   const sortedUsers = useMemo(() => {
     const arr = [...filteredUsers]
     arr.sort((a, b) => {
+      if (sortKey === 'createdAt') {
+        const av = toTimestamp(pickUserDate(a, ['createdAt', 'created_at', 'createdOn']))
+        const bv = toTimestamp(pickUserDate(b, ['createdAt', 'created_at', 'createdOn']))
+        const cmp = av - bv
+        return sortDir === 'asc' ? cmp : -cmp
+      }
+      if (sortKey === 'lastLoginAt') {
+        const av = toTimestamp(pickUserDate(a, ['lastLoginAt', 'lastLogin', 'lastSeenAt', 'updatedAt']))
+        const bv = toTimestamp(pickUserDate(b, ['lastLoginAt', 'lastLogin', 'lastSeenAt', 'updatedAt']))
+        const cmp = av - bv
+        return sortDir === 'asc' ? cmp : -cmp
+      }
       const av = String(a?.[sortKey] ?? '').toLowerCase()
       const bv = String(b?.[sortKey] ?? '').toLowerCase()
       const cmp = av.localeCompare(bv, 'fr', { numeric: true, sensitivity: 'base' })
@@ -162,6 +216,14 @@ export default function UsersPage() {
   const selectedCount = selectedIds.length
 
   const totalPages = Math.max(1, Math.ceil(total / limit))
+
+  const pageStats = useMemo(() => {
+    const active = filteredUsers.filter((u) => String(u.status || '').toLowerCase() === 'active').length
+    const blocked = filteredUsers.filter((u) => String(u.status || '').toLowerCase() === 'blocked').length
+    const rh = filteredUsers.filter((u) => String(u.role || '').toLowerCase() === 'rh').length
+    const admins = filteredUsers.filter((u) => String(u.role || '').toLowerCase() === 'admin').length
+    return { active, blocked, rh, admins }
+  }, [filteredUsers])
 
   const submitForm = async (e) => {
     e.preventDefault()
@@ -241,6 +303,68 @@ export default function UsersPage() {
     }
   }
 
+  const clearFilters = () => {
+    setSearch('')
+    setRoleFilter('all')
+    setStatusFilter('all')
+    setPage(1)
+  }
+
+  const exportCsv = () => {
+    const headers = ['ID', 'Name', 'Email', 'Role', 'Status', 'Created At', 'Last Login']
+    const rows = sortedUsers.map((u) => [
+      u.id,
+      u.name,
+      u.email,
+      u.role,
+      u.status,
+      formatDateTime(pickUserDate(u, ['createdAt', 'created_at', 'createdOn'])),
+      formatDateTime(pickUserDate(u, ['lastLoginAt', 'lastLogin', 'lastSeenAt', 'updatedAt'])),
+    ])
+    const csv = [headers, ...rows].map((r) => r.map(csvCell).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const stamp = new Date().toISOString().slice(0, 19).replaceAll(':', '-')
+    a.href = url
+    a.download = `users-export-${stamp}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const runImpersonate = async () => {
+    if (!quickView?.id) return
+    if (!window.confirm(`Se connecter comme ${quickView.name || quickView.email || quickView.id} ?`)) return
+    setImpersonating(true)
+    setError('')
+    try {
+      const tokenBefore = localStorage.getItem('ws_token') || ''
+      if (user?.role === 'admin' && tokenBefore) {
+        localStorage.setItem(
+          ADMIN_SNAPSHOT_KEY,
+          JSON.stringify({
+            token: tokenBefore,
+            user,
+            createdAt: new Date().toISOString(),
+          }),
+        )
+      }
+      const { token, user: nextUser } = await impersonateUserApi(quickView.id)
+      login(nextUser, token)
+      window.location.href = getLandingByRole(nextUser?.role)
+    } catch (e) {
+      setError(
+        e?.response?.status === 404
+          ? "L'endpoint d'impersonation n'est pas encore disponible côté backend."
+          : (e?.message || "Impossible d'exécuter l'impersonation."),
+      )
+    } finally {
+      setImpersonating(false)
+    }
+  }
+
   const columns = useMemo(
     () => [
       {
@@ -265,6 +389,16 @@ export default function UsersPage() {
       { key: 'id', label: 'ID' },
       { key: 'name', label: 'Name' },
       { key: 'email', label: 'Email' },
+      {
+        key: 'createdAt',
+        label: 'Created at',
+        render: (_, row) => formatDateTime(pickUserDate(row, ['createdAt', 'created_at', 'createdOn'])),
+      },
+      {
+        key: 'lastLoginAt',
+        label: 'Last login',
+        render: (_, row) => formatDateTime(pickUserDate(row, ['lastLoginAt', 'lastLogin', 'lastSeenAt', 'updatedAt'])),
+      },
       {
         key: 'role',
         label: 'Role',
@@ -295,7 +429,7 @@ export default function UsersPage() {
         label: 'Actions',
         render: (_, row) => (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => openModal(row, 'view')}>View</Button>
+            <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => setQuickView(row)}>View</Button>
             {canEdit && <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => openModal(row, 'edit')}>Edit</Button>}
             {canDelete && <Button variant="danger" className="px-3 py-1.5 text-xs" onClick={() => deleteUser(row)}>Delete</Button>}
           </div>
@@ -306,12 +440,42 @@ export default function UsersPage() {
   )
 
   return (
-    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}>
+    <motion.div
+      initial={{ opacity: 0, x: 10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.25 }}
+      className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]"
+    >
       <Card
         title="Users Management"
         subtitle="Search, view and manage platform users"
         className="space-y-4"
       >
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/60">
+            <p className="text-xs text-slate-500 dark:text-slate-400">Total (global)</p>
+            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{total}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/60">
+            <p className="text-xs text-slate-500 dark:text-slate-400">Visible (page)</p>
+            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{filteredUsers.length}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+            <p className="text-xs text-emerald-700 dark:text-emerald-300">Active</p>
+            <p className="mt-1 text-xl font-bold text-emerald-700 dark:text-emerald-300">{pageStats.active}</p>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-3 dark:border-rose-900/40 dark:bg-rose-900/20">
+            <p className="text-xs text-rose-700 dark:text-rose-300">Blocked</p>
+            <p className="mt-1 text-xl font-bold text-rose-700 dark:text-rose-300">{pageStats.blocked}</p>
+          </div>
+          <div className="rounded-xl border border-primary-200 bg-primary-50/70 p-3 dark:border-primary-900/40 dark:bg-primary-900/20">
+            <p className="text-xs text-primary-700 dark:text-primary-300">RH / Admin</p>
+            <p className="mt-1 text-xl font-bold text-primary-700 dark:text-primary-300">
+              {pageStats.rh} / {pageStats.admins}
+            </p>
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <input
             value={search}
@@ -325,7 +489,36 @@ export default function UsersPage() {
             placeholder="Search by name or email..."
             className="w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary-400 dark:border-slate-700 dark:bg-slate-900"
           />
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900"
+          >
+            <option value="all">Role: All</option>
+            <option value="employee">Employee</option>
+            <option value="rh">RH</option>
+            <option value="admin">Admin</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900"
+          >
+            <option value="all">Status: All</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="blocked">Blocked</option>
+          </select>
           {canCreate && <Button onClick={() => openModal(null, 'create')}>+ Add User</Button>}
+          <Button variant="secondary" className="px-3 py-2 text-xs" onClick={() => loadUsers(page, search)}>
+            Refresh
+          </Button>
+          <Button variant="ghost" className="px-3 py-2 text-xs" onClick={clearFilters}>
+            Clear filters
+          </Button>
+          <Button variant="secondary" className="px-3 py-2 text-xs" onClick={exportCsv} disabled={loading || sortedUsers.length === 0}>
+            Export CSV
+          </Button>
           <div className="ml-auto flex items-center gap-2">
             <select
               value={sortKey}
@@ -336,6 +529,8 @@ export default function UsersPage() {
               <option value="email">Sort: Email</option>
               <option value="role">Sort: Role</option>
               <option value="status">Sort: Status</option>
+              <option value="createdAt">Sort: Created at</option>
+              <option value="lastLoginAt">Sort: Last login</option>
               <option value="id">Sort: ID</option>
             </select>
             <Button variant="secondary" className="px-3 py-2 text-xs" onClick={toggleSortDir}>
@@ -371,6 +566,11 @@ export default function UsersPage() {
           </div>
         )}
         {loading ? <LoadingSkeletonTable /> : <DataTable columns={columns} rows={sortedUsers} />}
+        {!loading && sortedUsers.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
+            Aucun utilisateur ne correspond aux filtres actuels.
+          </div>
+        )}
         <div className="flex items-center justify-between pt-2">
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Page {page} / {totalPages} · {total} users
@@ -386,27 +586,81 @@ export default function UsersPage() {
         </div>
       </Card>
 
+      <motion.aside
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-24 dark:border-slate-800 dark:bg-slate-950/70"
+      >
+        {quickView ? (
+          <>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Quick details</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{quickView.name || 'Utilisateur'}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{quickView.email || '—'}</p>
+              </div>
+              <Button variant="ghost" className="px-2.5 py-1.5 text-xs" onClick={() => setQuickView(null)}>
+                Close
+              </Button>
+            </div>
+            <div className="grid gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400">ID</p>
+                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView.id}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Role</p>
+                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView.role || '—'}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Status</p>
+                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView.status || '—'}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Department</p>
+                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView._raw?.department || '—'}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Created at</p>
+                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">
+                  {formatDateTime(pickUserDate(quickView, ['createdAt', 'created_at', 'createdOn']))}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Last login</p>
+                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">
+                  {formatDateTime(pickUserDate(quickView, ['lastLoginAt', 'lastLogin', 'lastSeenAt', 'updatedAt']))}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+              <Button
+                variant="primary"
+                className="w-full"
+                disabled={impersonating || String(quickView.role || '').toLowerCase() === 'admin'}
+                onClick={runImpersonate}
+                title={String(quickView.role || '').toLowerCase() === 'admin' ? 'Impersonation admin désactivée' : 'Se connecter en tant que cet utilisateur'}
+              >
+                {impersonating ? 'Impersonating...' : 'Impersonate user'}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
+            Sélectionne un utilisateur avec <strong>View</strong> pour voir ses détails ici.
+          </div>
+        )}
+      </motion.aside>
+
       <Modal
         open={open}
         onClose={() => {
           if (saving) return
           setOpen(false)
         }}
-        title={mode === 'edit' ? 'Edit User' : mode === 'create' ? 'Create User' : 'User Details'}
+        title={mode === 'edit' ? 'Edit User' : 'Create User'}
       >
-        {selected && (
-          <div className="space-y-3 text-sm">
-            {mode === 'view' ? (
-              <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-slate-200">
-                <p><strong>ID:</strong> {selected.id}</p>
-                <p><strong>Name:</strong> {selected.name}</p>
-                <p><strong>Email:</strong> {selected.email}</p>
-                <p><strong>Role:</strong> {selected.role}</p>
-                <p><strong>Status:</strong> {selected.status}</p>
-              </div>
-            ) : null}
-          </div>
-        )}
         {(mode === 'edit' || mode === 'create') && (
           <form className="space-y-3" onSubmit={submitForm}>
             <label className="block text-xs text-slate-300">

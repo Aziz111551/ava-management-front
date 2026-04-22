@@ -126,6 +126,21 @@ export async function getAdminPermissionsApi() {
   return []
 }
 
+export async function impersonateUserApi(userId) {
+  const res = await requestWithFallback([
+    { method: 'POST', url: '/api/auth/impersonate', data: { userId } },
+    { method: 'POST', url: '/auth/impersonate', data: { userId } },
+    { method: 'POST', url: '/api/admin/impersonate', data: { userId } },
+  ])
+  const payload = res?.data?.data || res?.data || {}
+  const token = payload.token || payload.accessToken || payload.jwt
+  const user = payload.user || payload.account || payload.profile
+  if (!token || !user) {
+    throw new Error('Réponse impersonate invalide (token/user manquant).')
+  }
+  return { token, user }
+}
+
 export async function getSettingsApi() {
   const res = await requestWithFallback([
     { method: 'GET', url: '/api/settings' },
