@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 const items = [
   { to: '/admin-pro', label: 'Dashboard', icon: 'fa-solid fa-chart-line', end: true },
   { to: '/admin-pro/users', label: 'Users', icon: 'fa-solid fa-users' },
-  { to: '/admin-pro/settings', label: 'Settings', icon: 'fa-solid fa-gear' },
 ]
 
 export default function Sidebar({ collapsed, onToggle }) {

@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import AdminShell from '../layout/AdminShell'
 import DashboardPage from '../pages/DashboardPage'
 import UsersPage from '../pages/UsersPage'
-import SettingsPage from '../pages/SettingsPage'
 
 function TransitionWrapper({ children }) {
   return (
@@ -25,7 +24,6 @@ function AdminProContentRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route index element={<TransitionWrapper><DashboardPage /></TransitionWrapper>} />
         <Route path="users" element={<TransitionWrapper><UsersPage /></TransitionWrapper>} />
-        <Route path="settings" element={<TransitionWrapper><SettingsPage /></TransitionWrapper>} />
         <Route path="*" element={<Navigate to="/admin-pro" replace />} />
       </Routes>
     </AnimatePresence>

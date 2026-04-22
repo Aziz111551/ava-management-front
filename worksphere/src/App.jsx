@@ -26,10 +26,7 @@ import AdminLayout from './pages/admin/AdminLayout'
 import AdminOverview from './pages/admin/AdminOverview'
 import AdminMeetHub from './pages/admin/AdminMeetHub'
 import AdminMessaging from './pages/admin/AdminMessaging'
-import AdminPayments from './pages/admin/AdminPayments'
-import AdminEmployees from './pages/admin/AdminEmployees'
 import AdminAIInsights from './pages/admin/AdminAIInsights'
-import AdminSettings from './pages/admin/AdminSettings'
 import AdminProRouter from './admin-pro/routes/AdminProRouter'
 
 function ProtectedRoute({ children, requiredRole }) {
@@ -135,11 +132,8 @@ export default function App() {
           }>
             <Route index element={<AdminOverview />} />
             <Route path="meet" element={<AdminMeetHub />} />
-            <Route path="employes" element={<AdminEmployees />} />
             <Route path="messages" element={<AdminMessaging />} />
-            <Route path="payments" element={<AdminPayments />} />
             <Route path="insights" element={<AdminAIInsights />} />
-            <Route path="parametres" element={<AdminSettings />} />
           </Route>
 
           <Route path="/admin-pro/*" element={
