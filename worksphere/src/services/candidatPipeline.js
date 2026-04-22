@@ -58,6 +58,7 @@ export function setTechPassedWithSnapshot(id, row, opts = {}) {
   p[id] = {
     ...p[id],
     stage: 'tech_passed',
+    forcePhase1: false,
     snapshot: snap,
     ...(techScore != null && Number.isFinite(Number(techScore))
       ? { techTestScore: Number(techScore) }
@@ -79,6 +80,7 @@ function isPhysicalDone(pipe, id) {
 }
 
 function isPromotedToPhase2(pipe, id, remoteLookup) {
+  if (pipe[id]?.forcePhase1) return false
   if (isPhysicalDone(pipe, id)) return false
   const st = pipe[id]?.stage
   if (st === 'tech_passed') return true
@@ -90,8 +92,33 @@ export function markPhysicalSent(id, { meetingAt, teamsUrl }) {
   p[id] = {
     ...p[id],
     stage: 'physical_sent',
+    forcePhase1: false,
     meetingAt,
     teamsUrl,
+    updatedAt: new Date().toISOString(),
+  }
+  save(p)
+}
+
+/**
+ * Retour RH : retire le candidat de la Phase 2 et le renvoie en Phase 1.
+ * On force localement l'affichage en Phase 1 même si un score auto > 80 existe côté remote.
+ */
+export function returnCandidateToPhase1(id, row) {
+  const p = load()
+  p[id] = {
+    ...p[id],
+    stage: 'tech_sent',
+    forcePhase1: true,
+    snapshot: row
+      ? {
+          name: row.name,
+          email: row.email,
+          position: row.position,
+          score: row.score,
+          cv: row.cv,
+        }
+      : p[id]?.snapshot,
     updatedAt: new Date().toISOString(),
   }
   save(p)

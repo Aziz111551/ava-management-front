@@ -30,6 +30,7 @@ import AdminPayments from './pages/admin/AdminPayments'
 import AdminEmployees from './pages/admin/AdminEmployees'
 import AdminAIInsights from './pages/admin/AdminAIInsights'
 import AdminSettings from './pages/admin/AdminSettings'
+import AdminProRouter from './admin-pro/routes/AdminProRouter'
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, loading } = useAuth()
@@ -140,6 +141,14 @@ export default function App() {
             <Route path="insights" element={<AdminAIInsights />} />
             <Route path="parametres" element={<AdminSettings />} />
           </Route>
+
+          <Route path="/admin-pro/*" element={
+            <ProtectedRoute requiredRole="admin">
+              <Gate>
+                <AdminProRouter />
+              </Gate>
+            </ProtectedRoute>
+          } />
 
           {/* EMPLOYEE ROUTES */}
           <Route path="/employee" element={

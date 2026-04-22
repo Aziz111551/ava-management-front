@@ -13,6 +13,7 @@ import {
   setPipelineStage,
   setTechPassedWithSnapshot,
   markPhysicalSent,
+  returnCandidateToPhase1,
   getStageFor,
   clearPipelineState,
 } from '../../services/candidatPipeline'
@@ -338,7 +339,7 @@ export function Candidats() {
         name: row.name?.trim() || 'Candidat',
         candidatId: row._id,
       })
-      setPipelineStage(row._id, 'tech_sent')
+      setPipelineStage(row._id, 'tech_sent', { forcePhase1: false })
       setPipelineTick((t) => t + 1)
       let msg = inv.emailSent
         ? inv.message || `E-mail test technique envoyé à ${email}.`
@@ -634,9 +635,8 @@ export function CandidatsPhase2() {
   }
 
   const handleDeleteCandidate = (row) => {
-    if (!window.confirm('Supprimer cette candidature ? Elle sera retirée des listes.')) return
-    setCandidatDecision(row._id, 'declined')
-    setCands((prev) => prev.filter((c) => c._id !== row._id))
+    if (!window.confirm('Retirer ce candidat de la Phase 2 et le renvoyer vers la Phase 1 ?')) return
+    returnCandidateToPhase1(row._id, row)
     if (scheduleRow?._id === row._id) setScheduleRow(null)
     setPipelineTick((t) => t + 1)
   }
@@ -665,9 +665,9 @@ export function CandidatsPhase2() {
             {busy ? <i className="fa-solid fa-spinner fa-spin" aria-hidden /> : <i className="fa-solid fa-video" aria-hidden />}
             <span>Meet</span>
           </Btn>
-          <Btn small variant="danger" disabled={busy} title="Supprimer candidature" onClick={() => handleDeleteCandidate(row)}>
+          <Btn small variant="danger" disabled={busy} title="Retourner ce candidat en Phase 1" onClick={() => handleDeleteCandidate(row)}>
             <i className="fa-solid fa-trash" aria-hidden />
-            <span>Supprimer</span>
+            <span>Retour Ph.1</span>
           </Btn>
         </div>
       )

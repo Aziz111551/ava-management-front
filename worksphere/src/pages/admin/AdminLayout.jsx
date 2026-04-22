@@ -12,6 +12,7 @@ const navItems = [
       { path: '/admin/payments', icon: 'fa-solid fa-credit-card', label: 'Paiements & abonnement' },
       { path: '/admin/insights', icon: 'fa-solid fa-wand-magic-sparkles', label: 'Insights IA' },
       { path: '/admin/parametres', icon: 'fa-solid fa-gear', label: 'Paramètres' },
+      { path: '/admin-pro', icon: 'fa-solid fa-table-columns', label: 'Admin Dashboard Pro' },
     ],
   },
 ]
@@ -24,6 +25,7 @@ const titles = {
   '/admin/payments': 'Paiements & abonnement',
   '/admin/insights': 'Insights IA — Récapitulatif',
   '/admin/parametres': 'Paramètres',
+  '/admin-pro': 'Admin Dashboard Pro',
 }
 
 export default function AdminLayout() {

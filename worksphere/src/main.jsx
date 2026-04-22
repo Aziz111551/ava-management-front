@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import App from './App'
+import './styles/tailwind.css'
 import './styles/global.css'
 import '@fortawesome/fontawesome-free/css/all.min.css'
 
