@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getMyProjects, addProject, getTrelloTasks } from '../../services/api'
+import { getMyProjects, addProject, getMySprintTasks, startSprintTask, markSprintTaskDone } from '../../services/api'
 import { SectionTitle, Pill, Btn, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
 
 // ── PROJECTS ──────────────────────────────────────────────────
@@ -111,58 +111,188 @@ const cols = ['todo', 'in_progress', 'done']
 const colLabel = { todo: 'To do', in_progress: 'In Progress', done: 'Done' }
 
 export function TachesTrello() {
-  const [tasks, setTasks] = useState(MOCK_TASKS)
-  const [filterProject, setFilterProject] = useState('all')
+  const storedUser = JSON.parse(localStorage.getItem('ws_user') || '{}')
+  const employeeId = storedUser._id || storedUser.id
 
-  useEffect(() => { getTrelloTasks().then(r => setTasks(r.data)).catch(() => {}) }, [])
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [actionId, setActionId] = useState(null)
 
-  const projects = ['all', ...new Set(tasks.map(t => t.project))]
-  const filtered = filterProject === 'all' ? tasks : tasks.filter(t => t.project === filterProject)
+  const fetchTasks = () => {
+    if (!employeeId) { setLoading(false); return }
+    setLoading(true)
+    getMySprintTasks(employeeId)
+      .then(data => setTasks(Array.isArray(data) ? data : []))
+      .catch(() => setTasks([]))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { fetchTasks() }, [employeeId])
+
+  const handleStart = async (task) => {
+    if (actionId) return
+    setActionId(task.id)
+    try {
+      await startSprintTask(task.id)
+      setTasks(prev => prev.map(t =>
+        t.id === task.id ? { ...t, status: 'in_progress' } : t
+      ))
+    } catch(e) { console.error(e) }
+    finally { setActionId(null) }
+  }
+
+  const handleDone = async (task) => {
+    if (actionId) return
+    setActionId(task.id)
+    try {
+      await markSprintTaskDone(task.id, employeeId)
+      setTasks(prev => prev.map(t =>
+        t.id === task.id ? { ...t, status: 'done' } : t
+      ))
+    } catch(e) { console.error(e) }
+    finally { setActionId(null) }
+  }
+
+  const priorityColor = { HIGH: 'red', MEDIUM: 'amber', LOW: 'default' }
+
+  const cols = [
+    {
+      key: 'todo',
+      label: 'To Do',
+      color: 'var(--cyan)',
+      gradient: 'var(--grad-cyan)',
+      items: tasks.filter(t =>
+        t.status === 'assigned' || t.status === 'TODO' || t.status === 'todo'
+      )
+    },
+    {
+      key: 'in_progress',
+      label: 'In Progress',
+      color: 'var(--amber)',
+      gradient: 'var(--grad-amber)',
+      items: tasks.filter(t => t.status === 'in_progress')
+    },
+    {
+      key: 'done',
+      label: 'Done',
+      color: 'var(--green)',
+      gradient: 'var(--grad-green)',
+      items: tasks.filter(t => t.status === 'done' || t.status === 'DONE')
+    },
+  ]
+
+  const totalDone = tasks.filter(t => t.status === 'done' || t.status === 'DONE').length
+  const pct = tasks.length ? Math.round((totalDone / tasks.length) * 100) : 0
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
+      Loading your workspace...
+    </div>
+  )
+
+  if (!employeeId) return (
+    <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
+      Session expired. Please log in again.
+    </div>
+  )
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {projects.map(p => (
-            <button key={p} onClick={() => setFilterProject(p)} style={{
-              padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', cursor: 'pointer',
-              background: filterProject === p ? 'var(--cyan)' : 'var(--card)',
-              color: filterProject === p ? '#fff' : 'var(--text2)',
-              border: `1px solid ${filterProject === p ? 'var(--cyan)' : 'var(--border)'}`,
-            }}>
-              {p === 'all' ? 'All' : p}
-            </button>
-          ))}
-        </div>
-        <Btn variant="ghost" onClick={() => window.open('https://trello.com', '_blank')}>
-          <i className="fa-brands fa-trello" aria-hidden />
-          Open Trello
-          <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: '10px', opacity: 0.85 }} aria-hidden />
+      <Grid cols={4} gap={12} style={{ marginBottom: '24px' }}>
+        <StatCard label="Total" value={tasks.length} gradient="var(--grad-cyan)" />
+        <StatCard label="To Do" value={cols[0].items.length} gradient="var(--grad-blue)" />
+        <StatCard label="In Progress" value={cols[1].items.length} gradient="var(--grad-amber)" />
+        <StatCard label="Completed" value={`${pct}%`} gradient="var(--grad-green)" />
+      </Grid>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        <Btn variant="ghost" onClick={fetchTasks}>
+          <i className="fa-solid fa-rotate-right" aria-hidden />
+          Refresh
         </Btn>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
         {cols.map(col => (
-          <div key={col} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px', minHeight: '300px' }}>
+          <div key={col.key} style={{
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '16px',
+            minHeight: '300px'
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text2)', fontFamily: 'var(--font-display)' }}>{colLabel[col]}</span>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: col.color, fontFamily: 'var(--font-display)' }}>
+                {col.label}
+              </span>
               <span style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text3)', borderRadius: '10px', padding: '1px 8px', fontSize: '11px' }}>
-                {filtered.filter(t => t.status === col).length}
+                {col.items.length}
               </span>
             </div>
-            {filtered.filter(t => t.status === col).map(t => (
-              <div key={t._id} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', marginBottom: '8px', cursor: 'pointer', transition: 'border-color 0.15s' }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border2)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+
+            {col.items.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text3)', fontSize: '12px' }}>
+                No tasks
+              </div>
+            )}
+
+            {col.items.map(task => (
+              <div key={task.id} style={{
+                background: 'var(--bg3)',
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
+                padding: '12px',
+                marginBottom: '8px',
+                transition: 'border-color 0.15s',
+                opacity: task.status === 'done' || task.status === 'DONE' ? 0.7 : 1
+              }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
               >
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '10px', padding: '1px 7px', borderRadius: '10px', background: 'var(--cyan-dim)', color: 'var(--cyan2)' }}>{t.tag}</span>
+                <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>
+                  {task.sprintTitle || task.projectTitle || 'Sprint'}
                 </div>
-                <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: '500', lineHeight: 1.4 }}>{t.title}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                  <Pill type={priorityType[t.priority]}>{t.priority}</Pill>
-                  <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{t.project}</span>
+
+                <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: '500', lineHeight: 1.4, marginBottom: '6px' }}>
+                  {task.title}
                 </div>
+
+                {task.description && (
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px', lineHeight: 1.4 }}>
+                    {task.description.length > 80 ? task.description.slice(0, 80) + '...' : task.description}
+                  </div>
+                )}
+
+                {task.deliverable && (
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '8px' }}>
+                    <span style={{ color: 'var(--text2)' }}>Deliverable: </span>{task.deliverable}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: col.key !== 'done' ? '10px' : '0' }}>
+                  <Pill type={priorityColor[task.priority] || 'default'}>{task.priority}</Pill>
+                  <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{task.estimatedHours}h</span>
+                </div>
+
+                {col.key === 'todo' && (
+                  <button onClick={() => handleStart(task)} disabled={actionId === task.id}
+                    style={{ width: '100%', padding: '7px', borderRadius: '7px', background: 'rgba(32,178,170,0.1)', border: '1px solid rgba(32,178,170,0.25)', color: 'var(--cyan2)', fontSize: '12px', fontWeight: '600', cursor: actionId === task.id ? 'not-allowed' : 'pointer' }}>
+                    {actionId === task.id ? '...' : '▶ Start Working'}
+                  </button>
+                )}
+
+                {col.key === 'in_progress' && (
+                  <button onClick={() => handleDone(task)} disabled={actionId === task.id}
+                    style={{ width: '100%', padding: '7px', borderRadius: '7px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)', color: 'var(--green)', fontSize: '12px', fontWeight: '600', cursor: actionId === task.id ? 'not-allowed' : 'pointer' }}>
+                    {actionId === task.id ? '...' : '✓ Mark as Done'}
+                  </button>
+                )}
+
+                {col.key === 'done' && (
+                  <div style={{ textAlign: 'center', fontSize: '11px', color: 'var(--green)', opacity: 0.8 }}>
+                    ✓ Completed
+                  </div>
+                )}
               </div>
             ))}
           </div>

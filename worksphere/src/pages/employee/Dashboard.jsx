@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { getMyProjects, getTrelloTasks, getMyConges } from '../../services/api'
+import { getMyProjects, getMySprintTasks, getMyConges } from '../../services/api'
 import { StatCard, Grid, SectionTitle, Pill, Btn, FeatureCard } from '../../components/shared/UI'
 
 const MOCK_PROJ = [
@@ -33,7 +33,9 @@ export default function EmployeeDashboard() {
 
   useEffect(() => {
     getMyProjects().then(r => setProjects(r.data)).catch(() => {})
-    getTrelloTasks().then(r => setTasks(r.data)).catch(() => {})
+    const u = JSON.parse(localStorage.getItem('ws_user') || '{}')
+    const eid = u._id || u.id
+    if (eid) getMySprintTasks(eid).then(data => setTasks(Array.isArray(data) ? data : [])).catch(() => {})
     getMyConges().then(r => setConges(r.data)).catch(() => {})
   }, [])
 
@@ -57,7 +59,7 @@ export default function EmployeeDashboard() {
       <SectionTitle>Quick access</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '28px' }}>
         <FeatureCard title="My Projects" description="Manage and track your active projects" gradient="var(--grad-cyan)" icon={<i className="fa-solid fa-folder-open" aria-hidden />} onClick={() => navigate('/employee/projets')} />
-        <FeatureCard title="Trello Tasks" description="Your ongoing sprint tasks" gradient="var(--grad-blue)" icon={<i className="fa-solid fa-list-check" aria-hidden />} onClick={() => navigate('/employee/taches')} />
+        <FeatureCard title="My Workspace" description="Your sprint tasks workspace" gradient="var(--grad-blue)" icon={<i className="fa-solid fa-list-check" aria-hidden />} onClick={() => navigate('/employee/taches')} />
         <FeatureCard title="Leave Request" description="Submit a new request" gradient="var(--grad-pink)" icon={<i className="fa-solid fa-umbrella-beach" aria-hidden />} onClick={() => navigate('/employee/conges')} />
         <FeatureCard title="Sick Leave" description="Declare a medical leave" gradient="var(--grad-amber)" icon={<i className="fa-solid fa-notes-medical" aria-hidden />} onClick={() => navigate('/employee/maladie')} />
       </div>
@@ -65,7 +67,7 @@ export default function EmployeeDashboard() {
       {/* Stats */}
       <Grid cols={4} gap={12}>
         <StatCard label="Ongoing projects"   value={projects.filter(p => p.status === 'active').length} gradient="var(--grad-cyan)" />
-        <StatCard label="Trello Tasks"  value={tasks.filter(t => t.status === 'in_progress').length} gradient="var(--grad-blue)" />
+        <StatCard label="My Tasks"  value={tasks.filter(t => t.status === 'in_progress').length} gradient="var(--grad-blue)" />
         <StatCard label="Done"        value={tasks.filter(t => t.status === 'done').length} gradient="var(--grad-pink)" />
         <StatCard label="Pending leave requests" value={conges.filter(c => c.status === 'pending').length} gradient="var(--grad-amber)" />
       </Grid>
@@ -117,17 +119,12 @@ export default function EmployeeDashboard() {
       {/* Trello kanban preview */}
       <SectionTitle action={
         <div style={{ display: 'flex', gap: '8px' }}>
-          <Btn small variant="ghost" onClick={() => window.open('https://trello.com', '_blank')}>
-            <i className="fa-brands fa-trello" aria-hidden />
-            Open Trello
-            <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: '10px', opacity: 0.85 }} aria-hidden />
-          </Btn>
           <Btn small onClick={() => navigate('/employee/taches')}>
             View all
             <i className="fa-solid fa-arrow-right" style={{ fontSize: '11px' }} aria-hidden />
           </Btn>
         </div>
-      }>Trello Tasks</SectionTitle>
+      }>My Tasks</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
         {taskCols.map(col => (
           <div key={col} style={{

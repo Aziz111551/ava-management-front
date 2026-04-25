@@ -7,7 +7,7 @@ const navItems = [
     items: [
       { path: '/employee/dashboard', icon: 'fa-solid fa-chart-line', label: 'Dashboard' },
       { path: '/employee/projets',   icon: 'fa-solid fa-folder-open', label: 'My Projects' },
-      { path: '/employee/taches',    icon: 'fa-solid fa-list-check', label: 'Trello Tasks' },
+      { path: '/employee/taches',    icon: 'fa-solid fa-list-check', label: 'My Workspace' },
     ],
   },
   {
@@ -23,7 +23,7 @@ const navItems = [
 const titles = {
   '/employee/dashboard': 'Dashboard',
   '/employee/projets':   'My projects',
-  '/employee/taches':    'Trello Tasks',
+  '/employee/taches':    'My Workspace',
   '/employee/conges':    'Leave Request',
   '/employee/maladie':   'Sick Leave',
   '/employee/meetings':  'RH Meetings',
