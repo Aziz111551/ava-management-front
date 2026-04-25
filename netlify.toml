@@ -3,7 +3,7 @@
 
 [build]
   base = "."
-  command = "npm ci && npm run build"
+  command = "npm ci --prefix worksphere && npm run build"
   publish = "worksphere/dist"
 
 [build.environment]
