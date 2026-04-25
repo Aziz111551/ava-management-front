@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { motion } from 'motion/react'
+import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { applyDarkMode, getInitialDarkMode } from './utils/theme'
 
 import Login from './pages/auth/Login'
 import FirstPassword from './pages/auth/FirstPassword'
@@ -78,6 +80,10 @@ function RootRedirect() {
 }
 
 export default function App() {
+  useEffect(() => {
+    applyDarkMode(getInitialDarkMode())
+  }, [])
+
   return (
     <AuthProvider>
       <BrowserRouter>

@@ -357,7 +357,7 @@ export default function UsersPage() {
     } catch (e) {
       setError(
         e?.response?.status === 404
-          ? "L'endpoint d'impersonation n'est pas encore disponible côté backend."
+          ? "Endpoint impersonation manquant côté backend. Implémente /api/auth/impersonate."
           : (e?.message || "Impossible d'exécuter l'impersonation."),
       )
     } finally {

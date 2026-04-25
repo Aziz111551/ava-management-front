@@ -4,6 +4,8 @@ import AdminShell from '../layout/AdminShell'
 import DashboardPage from '../pages/DashboardPage'
 import UsersPage from '../pages/UsersPage'
 import AIRecapPage from '../pages/AIRecapPage'
+import ProfilePage from '../pages/ProfilePage'
+import PreferencesPage from '../pages/PreferencesPage'
 import AdminOverview from '../../pages/admin/AdminOverview'
 import AdminMeetHub from '../../pages/admin/AdminMeetHub'
 import AdminMessaging from '../../pages/admin/AdminMessaging'
@@ -32,6 +34,8 @@ function AdminProContentRoutes() {
         <Route path="insights" element={<TransitionWrapper><AIRecapPage /></TransitionWrapper>} />
         <Route path="dashboard" element={<TransitionWrapper><DashboardPage /></TransitionWrapper>} />
         <Route path="users" element={<TransitionWrapper><UsersPage /></TransitionWrapper>} />
+        <Route path="profile" element={<TransitionWrapper><ProfilePage /></TransitionWrapper>} />
+        <Route path="preferences" element={<TransitionWrapper><PreferencesPage /></TransitionWrapper>} />
         <Route path="*" element={<Navigate to="/admin-pro" replace />} />
       </Routes>
     </AnimatePresence>

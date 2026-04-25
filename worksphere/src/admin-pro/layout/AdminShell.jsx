@@ -3,20 +3,15 @@ import { Outlet } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import Sidebar from './Sidebar'
 import TopNavbar from './TopNavbar'
+import { applyDarkMode, getInitialDarkMode } from '../../utils/theme'
 
 export default function AdminShell() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [darkMode, setDarkMode] = useState(() => {
-    const stored = localStorage.getItem('ap_dark')
-    if (stored != null) return stored === '1'
-    return true
-  })
+  const [darkMode, setDarkMode] = useState(getInitialDarkMode)
 
   useEffect(() => {
-    localStorage.setItem('ap_dark', darkMode ? '1' : '0')
-    document.documentElement.classList.toggle('dark', darkMode)
-    document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light'
+    applyDarkMode(darkMode)
   }, [darkMode])
 
   return (
