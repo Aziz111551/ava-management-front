@@ -1,10 +1,10 @@
-# Déploiement lorsque le dépôt Git est le dossier parent (ex. « Multiple files »).
-# Avec base = "worksphere", « publish » est relatif à CE dossier (pas worksphere/dist depuis la racine).
+# Déploiement depuis la racine du dépôt pour éviter le "no content change"
+# quand des commits modifient des fichiers hors de worksphere/.
 
 [build]
-  base = "worksphere"
+  base = "."
   command = "npm ci && npm run build"
-  publish = "dist"
+  publish = "worksphere/dist"
 
 [build.environment]
   NODE_VERSION = "20"
@@ -18,9 +18,9 @@
 # Test local : à la racine du repo, lance `npm run dev:netlify` (Vite + fonctions sur le même port proxy).
 [dev]
   command = "npm run dev"
-  targetPort = 3000
+  targetPort = 5173
   port = 8888
-  publish = "dist"
+  publish = "worksphere/dist"
 
 [[redirects]]
   from = "/*"
