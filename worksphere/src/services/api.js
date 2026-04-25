@@ -76,4 +76,22 @@ export const addProject = (data) => API.post('/employee/projects', data)
 export const getTrelloTasks = () => API.get('/employee/trello')
 export const getMyConges = () => API.get('/employee/conges')
 
+// SPRINT WORKSPACE
+export const getMySprintTasks = (employeeId) =>
+  fetch(`https://backendagentai-production.up.railway.app/internal/tasks/by-employee/${employeeId}`)
+    .then(r => r.json())
+
+export const startSprintTask = (taskId) =>
+  fetch(`https://backendagentai-production.up.railway.app/internal/tasks/${taskId}/start`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' }
+  }).then(r => r.json())
+
+export const markSprintTaskDone = (taskId, employeeId) =>
+  fetch(`https://n8n-production-1e13.up.railway.app/webhook/task-complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ taskId, employeeId })
+  }).then(r => r.json())
+
 export default API
