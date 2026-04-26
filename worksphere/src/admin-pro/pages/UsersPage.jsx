@@ -434,13 +434,13 @@ export default function UsersPage() {
               View
             </Button>
             {canEdit && (
-              <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => openModal(row, 'edit')} title="Edit">
-                <EditIcon className="w-4 h-4" />
+              <Button variant="secondary" className="px-6 py-2 text-base font-semibold" onClick={() => openModal(row, 'edit')}>
+                Edit
               </Button>
             )}
             {canDelete && (
-              <Button variant="danger" className="px-3 py-1.5 text-xs" onClick={() => deleteUser(row)} title="Delete">
-                <DeleteIcon className="w-4 h-4" />
+              <Button variant="danger" className="px-6 py-2 text-base font-semibold" onClick={() => deleteUser(row)}>
+                Delete
               </Button>
             )}
           </div>
