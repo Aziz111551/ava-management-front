@@ -433,16 +433,15 @@ export default function UsersPage() {
             <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => setQuickView(row)}>
               View
             </Button>
-            {canEdit && (
-              <Button variant="secondary" className="px-6 py-2 text-base font-semibold" onClick={() => openModal(row, 'edit')}>
-                Edit
-              </Button>
-            )}
-            {canDelete && (
-              <Button variant="danger" className="px-6 py-2 text-base font-semibold" onClick={() => deleteUser(row)}>
-                Delete
-              </Button>
-            )}
+            <Button variant="secondary" className="px-6 py-2 text-base font-semibold" onClick={() => openModal(row, 'edit')}>
+              Edit
+            </Button>
+            <Button variant="warning" className="px-6 py-2 text-base font-semibold bg-amber-500 text-white hover:bg-amber-600" onClick={() => alert('Block user: ' + row.name)}>
+              Block
+            </Button>
+            <Button variant="danger" className="px-6 py-2 text-base font-semibold" onClick={() => deleteUser(row)}>
+              Delete
+            </Button>
           </div>
         ),
       },
