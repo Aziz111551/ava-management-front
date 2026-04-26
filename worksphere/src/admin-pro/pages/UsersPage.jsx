@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import Button from '../components/Button'
+import { EditIcon, DeleteIcon } from '../../assets/icons/Icons'
 import Card from '../components/Card'
 import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
@@ -429,9 +430,19 @@ export default function UsersPage() {
         label: 'Actions',
         render: (_, row) => (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => setQuickView(row)}>View</Button>
-            {canEdit && <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => openModal(row, 'edit')}>Edit</Button>}
-            {canDelete && <Button variant="danger" className="px-3 py-1.5 text-xs" onClick={() => deleteUser(row)}>Delete</Button>}
+            <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => setQuickView(row)}>
+              View
+            </Button>
+            {canEdit && (
+              <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => openModal(row, 'edit')} title="Edit">
+                <EditIcon className="w-4 h-4" />
+              </Button>
+            )}
+            {canDelete && (
+              <Button variant="danger" className="px-3 py-1.5 text-xs" onClick={() => deleteUser(row)} title="Delete">
+                <DeleteIcon className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         ),
       },
