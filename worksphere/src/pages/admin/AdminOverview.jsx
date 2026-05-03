@@ -5,10 +5,10 @@ import { fetchMeetings } from '../../services/meetings'
 
 const surface = {
   panel: {
-    background: 'linear-gradient(165deg, rgba(22,24,42,0.95) 0%, rgba(14,17,32,0.92) 100%)',
-    border: '1px solid rgba(99,102,241,0.14)',
+    background: 'linear-gradient(165deg, rgba(26,58,82,0.94) 0%, rgba(15,41,64,0.92) 100%)',
+    border: '1px solid var(--border2)',
     borderRadius: '16px',
-    boxShadow: '0 1px 0 rgba(255,255,255,0.05) inset, 0 28px 56px rgba(0,0,0,0.45)',
+    boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 28px 56px rgba(0,0,0,0.42)',
   },
   th: {
     padding: '11px 14px',
@@ -30,7 +30,7 @@ const surface = {
   },
 }
 
-const TYPE_COLORS = ['#6366f1', '#22d3ee', '#4ade80', '#f472b6', '#fbbf24', '#94a3b8']
+const TYPE_COLORS = ['#3b82f6', '#06b6d4', '#22d3ee', '#1e4a66', '#1a3a52', '#7fa0b2']
 
 function formatDt(iso) {
   if (!iso) return '—'
@@ -41,7 +41,7 @@ function formatDt(iso) {
   }
 }
 
-function Sparkline({ data, color = '#4ade80', height = 36 }) {
+function Sparkline({ data, color = '#22d3ee', height = 36 }) {
   const w = 108
   const h = height
   if (!data?.length || data.length < 2) {
@@ -76,7 +76,7 @@ function Sparkline({ data, color = '#4ade80', height = 36 }) {
   )
 }
 
-function MiniBars({ data, color = '#ec4899' }) {
+function MiniBars({ data, color = '#3b82f6' }) {
   const w = 108
   const h = 36
   const max = Math.max(...data, 1)
@@ -111,7 +111,7 @@ function GaugeSemi({ pct }) {
         width: 72,
         height: 36,
         borderRadius: '72px 72px 0 0',
-        background: `conic-gradient(from 180deg at 50% 100%, #4ade80 ${deg}deg, rgba(255,255,255,0.08) 0deg)`,
+        background: `conic-gradient(from 180deg at 50% 100%, #22d3ee ${deg}deg, rgba(255,255,255,0.08) 0deg)`,
         WebkitMask: 'radial-gradient(farthest-side at 50% 100%, transparent 56%, #000 57%)',
         mask: 'radial-gradient(farthest-side at 50% 100%, transparent 56%, #000 57%)',
       }} />
@@ -122,7 +122,7 @@ function GaugeSemi({ pct }) {
         transform: 'translateX(-50%)',
         fontSize: '11px',
         fontWeight: '800',
-        color: '#4ade80',
+        color: '#22d3ee',
         fontVariantNumeric: 'tabular-nums',
       }}>
         {Math.round(p)}%
@@ -163,7 +163,7 @@ function MonthlyBarChart({ months }) {
                 maxWidth: 40,
                 height: Math.max(m.v ? 6 : 0, (m.v / max) * barMaxH),
                 borderRadius: 8,
-                background: 'linear-gradient(180deg, #22d3ee 0%, #6366f1 55%, #4c1d95 100%)',
+                background: 'linear-gradient(180deg, #22d3ee 0%, #3b82f6 55%, #1e4a66 100%)',
                 boxShadow: m.v ? '0 0 24px rgba(34,211,238,0.25)' : 'none',
                 transition: 'height 0.35s ease',
               }}
@@ -195,7 +195,7 @@ function DonutTypes({ segments }) {
     const end = (acc / total) * 360
     return `${s.color} ${start}deg ${end}deg`
   })
-  const gradient = stops.length ? `conic-gradient(from -90deg, ${stops.join(', ')})` : 'conic-gradient(#334155 0deg 360deg)'
+  const gradient = stops.length ? `conic-gradient(from -90deg, ${stops.join(', ')})` : 'conic-gradient(#1e4a66 0deg 360deg)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -205,14 +205,14 @@ function DonutTypes({ segments }) {
           height: 168,
           borderRadius: '50%',
           background: gradient,
-          boxShadow: '0 0 40px rgba(99,102,241,0.25)',
+          boxShadow: '0 0 40px rgba(59,130,246,0.22)',
         }} />
         <div style={{
           position: 'absolute',
           inset: '22%',
           borderRadius: '50%',
-          background: 'linear-gradient(160deg, #141628 0%, #0f111a 100%)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: 'linear-gradient(160deg, #1a3a52 0%, #0f2940 100%)',
+          border: '1px solid var(--border)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -243,7 +243,7 @@ function DonutTypes({ segments }) {
   )
 }
 
-function AreaTrend({ points, color = '#4ade80' }) {
+function AreaTrend({ points, color = '#22d3ee' }) {
   const w = 320
   const h = 72
   if (points.length < 2) {
@@ -274,9 +274,9 @@ function AreaTrend({ points, color = '#4ade80' }) {
 function StatusCell({ status }) {
   const s = String(status || '').toLowerCase()
   const map = {
-    completed: { bg: 'rgba(34,197,94,0.14)', color: '#4ade80', label: 'Terminée' },
-    ended: { bg: 'rgba(34,197,94,0.14)', color: '#4ade80', label: 'Clôturée' },
-    scheduled: { bg: 'rgba(59,130,246,0.14)', color: '#93c5fd', label: 'Planifiée' },
+    completed: { bg: 'rgba(34,211,238,0.14)', color: '#22d3ee', label: 'Terminée' },
+    ended: { bg: 'rgba(34,211,238,0.14)', color: '#22d3ee', label: 'Clôturée' },
+    scheduled: { bg: 'rgba(59,130,246,0.14)', color: '#3b82f6', label: 'Planifiée' },
     live: { bg: 'rgba(251,191,36,0.14)', color: '#fcd34d', label: 'En direct' },
     in_progress: { bg: 'rgba(251,191,36,0.14)', color: '#fcd34d', label: 'En cours' },
   }
@@ -302,7 +302,7 @@ function StatusCell({ status }) {
 function ReportCell({ m }) {
   const st = m.reportStatus || ''
   if (st === 'ready' || (m.reportPreview && Object.keys(m.reportPreview).length)) {
-    return <span style={{ color: '#4ade80', fontWeight: '600', fontSize: '12px' }}>Disponible</span>
+    return <span style={{ color: '#22d3ee', fontWeight: '600', fontSize: '12px' }}>Disponible</span>
   }
   if (st === 'error' || m.reportError) {
     return <span style={{ color: '#f87171', fontSize: '12px' }}>Erreur</span>
@@ -345,7 +345,7 @@ function MiniKpi({ label, value, hint, spark, gauge, bars, accent = '#22d3ee' })
       flexDirection: 'column',
       gap: 10,
       minHeight: gauge != null && !showMiniViz ? 108 : 128,
-      background: 'linear-gradient(145deg, rgba(26,28,48,0.98) 0%, rgba(18,20,36,0.95) 100%)',
+      background: 'linear-gradient(145deg, rgba(26,58,82,0.95) 0%, rgba(15,41,64,0.92) 100%)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{
@@ -372,7 +372,7 @@ function MiniKpi({ label, value, hint, spark, gauge, bars, accent = '#22d3ee' })
       {hint && <div style={{ fontSize: '10px', color: 'var(--text3)', lineHeight: 1.35 }}>{hint}</div>}
       {showMiniViz && (
         <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end', opacity: 0.95 }}>
-          {bars ? <MiniBars data={bars} color="#f472b6" /> : <Sparkline data={spark} color={accent} />}
+          {bars ? <MiniBars data={bars} color="#3b82f6" /> : <Sparkline data={spark} color={accent} />}
         </div>
       )}
     </div>
@@ -407,7 +407,7 @@ function BreakdownTable({ title, subtitle, rows, total }) {
             </tr>
           ) : (
             rows.map((r) => (
-              <tr key={r.label} style={{ transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.06)' }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
+              <tr key={r.label} style={{ transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(6,182,212,0.08)' }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
                 <td style={{ ...surface.td, paddingLeft: '20px', color: 'var(--text)', fontWeight: '500' }}>
                   {r.label}
                 </td>
@@ -596,7 +596,7 @@ export default function AdminOverview() {
         gridTemplateColumns: 'minmax(0, 1.2fr) minmax(200px, 0.75fr)',
         gap: 24,
         alignItems: 'center',
-        background: 'linear-gradient(125deg, rgba(99,102,241,0.22) 0%, rgba(15,23,42,0.92) 42%, rgba(14,17,32,0.96) 100%)',
+        background: 'linear-gradient(125deg, rgba(59,130,246,0.2) 0%, rgba(15,41,64,0.92) 42%, rgba(26,58,82,0.94) 100%)',
         position: 'relative',
         overflow: 'hidden',
       }}>
@@ -607,11 +607,11 @@ export default function AdminOverview() {
           width: 340,
           height: 340,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(34,211,238,0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(34,211,238,0.16) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#a5b4fc', marginBottom: 10 }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--cyan2)', marginBottom: 10 }}>
             Vue exécutive
           </div>
           <h1 style={{
@@ -632,8 +632,8 @@ export default function AdminOverview() {
             <div style={{
               padding: '12px 18px',
               borderRadius: 12,
-              background: 'rgba(0,0,0,0.28)',
-              border: '1px solid rgba(34,211,238,0.25)',
+              background: 'rgba(15,41,64,0.6)',
+              border: '1px solid var(--border3)',
               minWidth: 140,
             }}>
               <div style={{ fontSize: 10, color: '#67e8f9', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -646,11 +646,11 @@ export default function AdminOverview() {
             <div style={{
               padding: '12px 18px',
               borderRadius: 12,
-              background: 'rgba(0,0,0,0.28)',
-              border: '1px solid rgba(74,222,128,0.28)',
+              background: 'rgba(15,41,64,0.6)',
+              border: '1px solid var(--border2)',
               minWidth: 140,
             }}>
-              <div style={{ fontSize: 10, color: '#86efac', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 10, color: 'var(--blue)', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 Dynamique
               </div>
               <div style={{ fontSize: 22, fontWeight: '800', color: '#fff', fontFamily: 'var(--font-display)', marginTop: 6 }}>
@@ -672,8 +672,8 @@ export default function AdminOverview() {
             maxWidth: 280,
             height: 140,
             borderRadius: 16,
-            background: 'linear-gradient(160deg, rgba(30,32,54,0.9) 0%, rgba(20,22,40,0.95) 100%)',
-            border: '1px solid rgba(148,163,184,0.15)',
+            background: 'linear-gradient(160deg, rgba(26,58,82,0.92) 0%, rgba(15,41,64,0.95) 100%)',
+            border: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -684,13 +684,13 @@ export default function AdminOverview() {
               width: 56,
               height: 56,
               borderRadius: 14,
-              background: 'linear-gradient(135deg, #6366f1, #22d3ee)',
+              background: 'linear-gradient(135deg, #3b82f6, #22d3ee)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 24,
               color: '#fff',
-              boxShadow: '0 12px 32px rgba(99,102,241,0.4)',
+              boxShadow: '0 12px 32px rgba(59,130,246,0.35)',
             }}>
               <i className="fa-solid fa-chart-line" aria-hidden />
             </div>
@@ -785,7 +785,7 @@ export default function AdminOverview() {
             value={stats.participantEmails}
             hint="E-mails uniques (flux Meet)"
             spark={[...weeklySeries].reverse()}
-            accent="#f472b6"
+            accent="#3b82f6"
           />
         </div>
       </div>
@@ -811,16 +811,16 @@ export default function AdminOverview() {
             <div style={{
               fontSize: 11,
               fontWeight: '700',
-              color: '#4ade80',
+              color: '#22d3ee',
               padding: '6px 10px',
               borderRadius: 8,
-              background: 'rgba(74,222,128,0.12)',
-              border: '1px solid rgba(74,222,128,0.22)',
+              background: 'rgba(34,211,238,0.12)',
+              border: '1px solid rgba(34,211,238,0.22)',
             }}>
               Live data
             </div>
           </div>
-          <AreaTrend points={areaPoints} color="#4ade80" />
+          <AreaTrend points={areaPoints} color="#22d3ee" />
         </div>
         <div style={{
           ...surface.panel,
@@ -829,9 +829,9 @@ export default function AdminOverview() {
           flexDirection: 'column',
           justifyContent: 'center',
           gap: 12,
-          background: 'linear-gradient(160deg, rgba(236,72,153,0.12) 0%, rgba(15,23,42,0.92) 55%)',
+          background: 'linear-gradient(160deg, rgba(59,130,246,0.14) 0%, rgba(15,41,64,0.92) 55%)',
         }}>
-          <div style={{ fontSize: 10, fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#f9a8d4' }}>
+          <div style={{ fontSize: 10, fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--cyan2)' }}>
             Ressources humaines
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: '800', color: '#fff' }}>
@@ -870,15 +870,15 @@ export default function AdminOverview() {
             color: 'var(--text3)',
             padding: '6px 12px',
             borderRadius: '8px',
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.22)',
+            background: 'rgba(6,182,212,0.12)',
+            border: '1px solid rgba(6,182,212,0.22)',
           }}>
             {tableRows.length} ligne{tableRows.length !== 1 ? 's' : ''}
           </div>
         </div>
         <div style={{ overflowX: 'auto', maxHeight: 'min(480px, 62vh)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '920px' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(15,23,42,0.97)', backdropFilter: 'blur(8px)' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(15,41,64,0.97)', backdropFilter: 'blur(8px)' }}>
               <tr>
                 <th style={{ ...surface.th, paddingLeft: '22px' }}>Date & heure</th>
                 <th style={surface.th}>Type de flux</th>
@@ -901,7 +901,7 @@ export default function AdminOverview() {
                   <tr
                     key={m.id}
                     style={{ transition: 'background 0.12s' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.06)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(6,182,212,0.08)' }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                   >
                     <td style={{ ...surface.td, paddingLeft: '22px', fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>
