@@ -1,36 +1,36 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* AVA deep navy/teal palette — matching Flutter app */
-  --bg:        #081220;
-  --bg2:       #0c1a2e;
-  --bg3:       #0f2040;
-  --bg4:       #132548;
-  --card:      rgba(13, 32, 60, 0.85);
-  --card2:     rgba(16, 38, 70, 0.9);
+  /* New blue/cyan palette from design mockup */
+  --bg:        #0f2940;
+  --bg2:       #16384d;
+  --bg3:       #1e4a66;
+  --bg4:       #1a3a52;
+  --card:      rgba(26, 58, 82, 0.9);
+  --card2:     rgba(22, 56, 77, 0.92);
 
-  /* Borders — subtle teal glow like Flutter cards */
-  --border:    rgba(32, 178, 170, 0.15);
-  --border2:   rgba(32, 178, 170, 0.3);
-  --border3:   rgba(32, 178, 170, 0.5);
+  /* Borders */
+  --border:    rgba(35, 88, 120, 0.5);
+  --border2:   rgba(35, 88, 120, 0.72);
+  --border3:   rgba(34, 211, 238, 0.55);
 
   /* Text */
   --text:      #ffffff;
-  --text2:     rgba(255,255,255,0.65);
-  --text3:     rgba(255,255,255,0.35);
+  --text2:     #b5d3e2;
+  --text3:     #7fa0b2;
 
-  /* AVA cyan/teal accent */
-  --cyan:      #20b2aa;
-  --cyan2:     #00e5d4;
-  --cyan-dim:  rgba(32, 178, 170, 0.15);
-  --cyan-glow: rgba(32, 178, 170, 0.25);
+  /* Accents */
+  --cyan:      #06b6d4;
+  --cyan2:     #22d3ee;
+  --cyan-dim:  rgba(6, 182, 212, 0.14);
+  --cyan-glow: rgba(34, 211, 238, 0.28);
 
-  /* Gradient accents from Flutter app */
-  --grad-pink:    linear-gradient(135deg, #e91e8c, #9c27b0);
-  --grad-cyan:    linear-gradient(135deg, #20b2aa, #00bcd4);
-  --grad-blue:    linear-gradient(135deg, #1565c0, #0288d1);
-  --grad-amber:   linear-gradient(135deg, #f57c00, #fbc02d);
-  --grad-purple:  linear-gradient(135deg, #6a1b9a, #4a148c);
+  /* App gradients */
+  --grad-pink:    linear-gradient(135deg, #1e4a66, #3b82f6);
+  --grad-cyan:    linear-gradient(135deg, #06b6d4, #3b82f6);
+  --grad-blue:    linear-gradient(135deg, #3b82f6, #22d3ee);
+  --grad-amber:   linear-gradient(135deg, #1a3a52, #1e4a66);
+  --grad-purple:  linear-gradient(135deg, #16384d, #1e4a66);
 
   /* Status colors */
   --green:     #00e676;
@@ -39,8 +39,8 @@
   --amber-bg:  rgba(255, 179, 0, 0.12);
   --red:       #ff5252;
   --red-bg:    rgba(255, 82, 82, 0.12);
-  --blue:      #40c4ff;
-  --blue-bg:   rgba(64, 196, 255, 0.12);
+  --blue:      #3b82f6;
+  --blue-bg:   rgba(59, 130, 246, 0.14);
 
   --radius:    16px;
   --radius-sm: 10px;
@@ -61,14 +61,14 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle mesh background matching AVA */
+/* Subtle layered background using palette accents */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(32,178,170,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,188,212,0.06) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(59,130,246,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(6,182,212,0.1) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -96,5 +96,5 @@ a { text-decoration: none; color: inherit; }
 
 @keyframes fadeIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 @keyframes slideIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
-@keyframes glow    { 0%,100%{ box-shadow: 0 0 12px rgba(32,178,170,0.3); } 50%{ box-shadow: 0 0 24px rgba(32,178,170,0.6); } }
+@keyframes glow    { 0%,100%{ box-shadow: 0 0 12px rgba(6,182,212,0.28); } 50%{ box-shadow: 0 0 24px rgba(34,211,238,0.55); } }
 .fade-in { animation: fadeIn 0.4s ease forwards; }

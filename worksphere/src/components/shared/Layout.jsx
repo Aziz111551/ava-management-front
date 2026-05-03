@@ -25,7 +25,7 @@ export default function Layout({ navItems, pageTitle, children, adminMode = fals
       <aside style={{
         width: '256px', flexShrink: 0,
         background: adminMode
-          ? 'linear-gradient(180deg, rgba(22, 16, 42, 0.98) 0%, rgba(12, 10, 28, 0.96) 100%)'
+          ? 'linear-gradient(180deg, rgba(26, 58, 82, 0.98) 0%, rgba(15, 41, 64, 0.96) 100%)'
           : 'linear-gradient(180deg, rgba(10, 22, 38, 0.98) 0%, rgba(8, 18, 32, 0.96) 100%)',
         borderRight: '1px solid var(--border2)',
         display: 'flex', flexDirection: 'column',
@@ -43,20 +43,20 @@ export default function Layout({ navItems, pageTitle, children, adminMode = fals
             <div style={{
               width: '36px', height: '36px', borderRadius: '10px',
               background: adminMode
-                ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)'
+                ? 'var(--grad-blue)'
                 : 'var(--grad-cyan)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--font-display)', fontWeight: '800',
               fontSize: '15px', color: '#fff',
               boxShadow: adminMode
-                ? '0 4px 16px rgba(99,102,241,0.45)'
-                : '0 4px 16px rgba(32,178,170,0.4)',
+                ? '0 4px 16px rgba(59,130,246,0.42)'
+                : '0 4px 16px rgba(6,182,212,0.4)',
             }}>A</div>
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: '800', fontSize: '15px', color: 'var(--text)', letterSpacing: '-0.3px', lineHeight: 1.1 }}>AVA</div>
               <div style={{
                 fontSize: '10px',
-                color: adminMode ? '#c4b5fd' : 'var(--cyan)',
+                color: adminMode ? 'var(--cyan2)' : 'var(--cyan)',
                 fontWeight: '500', letterSpacing: '0.08em', textTransform: 'uppercase',
               }}>{adminMode ? 'Administration' : 'Management'}</div>
             </div>
@@ -90,11 +90,11 @@ export default function Layout({ navItems, pageTitle, children, adminMode = fals
                       cursor: 'pointer', borderRadius: 'var(--radius-sm)',
                       background: active
                         ? (adminMode
-                          ? 'linear-gradient(90deg, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.08) 100%)'
-                          : 'linear-gradient(90deg, rgba(32,178,170,0.18) 0%, rgba(32,178,170,0.06) 100%)')
+                          ? 'linear-gradient(90deg, rgba(59,130,246,0.22) 0%, rgba(34,211,238,0.08) 100%)'
+                          : 'linear-gradient(90deg, rgba(6,182,212,0.18) 0%, rgba(6,182,212,0.06) 100%)')
                         : 'transparent',
                       border: active
-                        ? (adminMode ? '1px solid rgba(129,140,248,0.45)' : '1px solid rgba(32,178,170,0.35)')
+                        ? (adminMode ? '1px solid var(--border3)' : '1px solid rgba(6,182,212,0.35)')
                         : '1px solid transparent',
                       transition: 'all 0.18s ease',
                     }}
@@ -107,8 +107,8 @@ export default function Layout({ navItems, pageTitle, children, adminMode = fals
                       <div style={{
                         marginLeft: 'auto', width: '6px', height: '6px',
                         borderRadius: '50%',
-                        background: adminMode ? '#a78bfa' : 'var(--cyan)',
-                        boxShadow: adminMode ? '0 0 8px #818cf8' : '0 0 8px var(--cyan)',
+                        background: adminMode ? 'var(--cyan2)' : 'var(--cyan)',
+                        boxShadow: adminMode ? '0 0 8px var(--cyan2)' : '0 0 8px var(--cyan)',
                       }} />
                     )}
                   </div>
@@ -123,13 +123,13 @@ export default function Layout({ navItems, pageTitle, children, adminMode = fals
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             padding: '10px 12px', borderRadius: 'var(--radius-sm)',
-            background: adminMode ? 'rgba(99,102,241,0.1)' : 'rgba(32,178,170,0.06)',
+            background: adminMode ? 'rgba(59,130,246,0.12)' : 'rgba(6,182,212,0.08)',
             border: '1px solid var(--border)',
             marginBottom: '10px',
           }}>
             <div style={{
               width: '34px', height: '34px', borderRadius: '50%',
-              background: adminMode ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)' : 'var(--grad-cyan)',
+              background: adminMode ? 'var(--grad-blue)' : 'var(--grad-cyan)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '12px', fontWeight: '700', color: '#fff', flexShrink: 0,
             }}>{initials}</div>
@@ -169,7 +169,7 @@ export default function Layout({ navItems, pageTitle, children, adminMode = fals
           borderBottom: '1px solid var(--border2)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 28px',
-          background: 'linear-gradient(180deg, rgba(12,26,46,0.92) 0%, rgba(8,18,32,0.88) 100%)',
+          background: 'linear-gradient(180deg, rgba(26,58,82,0.42) 0%, rgba(15,41,64,0.35) 100%)',
           backdropFilter: 'blur(14px)',
         }}>
           <span style={{

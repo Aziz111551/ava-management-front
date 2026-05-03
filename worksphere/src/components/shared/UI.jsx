@@ -28,9 +28,9 @@ export function Pill({ children, type = 'default' }) {
     green:   { bg: 'var(--green-bg)',  color: 'var(--green)',  border: 'rgba(0,230,118,0.2)' },
     amber:   { bg: 'var(--amber-bg)',  color: 'var(--amber)',  border: 'rgba(255,179,0,0.2)' },
     red:     { bg: 'var(--red-bg)',    color: 'var(--red)',    border: 'rgba(255,82,82,0.2)' },
-    blue:    { bg: 'var(--blue-bg)',   color: 'var(--blue)',   border: 'rgba(64,196,255,0.2)' },
+    blue:    { bg: 'var(--blue-bg)',   color: 'var(--blue)',   border: 'rgba(59,130,246,0.35)' },
     cyan:    { bg: 'var(--cyan-dim)',   color: 'var(--cyan2)', border: 'var(--border2)' },
-    default: { bg: 'rgba(255,255,255,0.06)', color: 'var(--text2)', border: 'var(--border)' },
+    default: { bg: 'rgba(15,41,64,0.5)', color: 'var(--text2)', border: 'var(--border)' },
   }
   const c = colors[type] || colors.default
   return (
@@ -68,10 +68,10 @@ export function Btn({ children, onClick, variant = 'primary', small, style: extr
     fontFamily: 'var(--font-body)', opacity: disabled ? 0.5 : 1,
   }
   const variants = {
-    primary: { background: 'var(--grad-cyan)', color: '#fff', boxShadow: '0 4px 15px rgba(32,178,170,0.3)' },
+    primary: { background: 'var(--grad-cyan)', color: '#fff', boxShadow: '0 4px 15px rgba(6,182,212,0.34)' },
     ghost:   { background: 'rgba(255,255,255,0.05)', color: 'var(--text2)', border: '1px solid var(--border2)' },
     danger:  { background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,82,82,0.2)' },
-    pink:    { background: 'var(--grad-pink)', color: '#fff', boxShadow: '0 4px 15px rgba(233,30,140,0.3)' },
+    pink:    { background: 'var(--grad-blue)', color: '#fff', boxShadow: '0 4px 15px rgba(59,130,246,0.32)' },
   }
   return (
     <button style={{ ...base, ...variants[variant], ...extra }} onClick={onClick} disabled={disabled}>
@@ -124,7 +124,7 @@ export function Table({ columns, rows }) {
       <div style={{
         display: 'grid',
         gridTemplateColumns: columns.map(c => c.width || '1fr').join(' '),
-        padding: '10px 18px', background: 'rgba(32,178,170,0.08)',
+        padding: '10px 18px', background: 'rgba(6,182,212,0.12)',
         borderBottom: '1px solid var(--border)',
       }}>
         {columns.map(c => (
@@ -140,7 +140,7 @@ export function Table({ columns, rows }) {
             padding: '13px 18px', borderTop: '1px solid var(--border)',
             alignItems: 'center', transition: 'background 0.15s',
           }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(32,178,170,0.05)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(6,182,212,0.08)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             {columns.map(c => (
@@ -173,7 +173,7 @@ export function Modal({ open, onClose, title, children }) {
         background: 'var(--bg3)', border: '1px solid var(--border2)',
         borderRadius: 'var(--radius-xl)', padding: '28px',
         width: '100%', maxWidth: '500px', animation: 'fadeIn 0.25s ease',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(32,178,170,0.1)',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(6,182,212,0.14)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: '700', color: 'var(--text)' }}>{title}</h3>
@@ -201,7 +201,7 @@ export function Field({ label, children }) {
 
 export const inputStyle = {
   width: '100%', padding: '10px 14px',
-  background: 'rgba(255,255,255,0.04)',
+  background: 'rgba(15,41,64,0.45)',
   border: '1px solid var(--border2)',
   borderRadius: 'var(--radius-sm)',
   color: 'var(--text)', fontSize: '13px', outline: 'none',

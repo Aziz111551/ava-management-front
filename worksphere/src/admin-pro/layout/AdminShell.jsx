@@ -15,14 +15,14 @@ export default function AdminShell() {
   }, [darkMode])
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-screen bg-primary-900 text-white">
       <div className="flex min-h-screen">
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
 
         <AnimatePresence>
           {mobileOpen && (
             <motion.div
-              className="fixed inset-0 z-50 bg-slate-950/60 xl:hidden"
+              className="fixed inset-0 z-50 bg-primary-900/75 xl:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

@@ -508,7 +508,7 @@ export default function TechnicalTestPage() {
   const bg = {
     minHeight: '100vh',
     background:
-      'radial-gradient(circle at top left, rgba(32,178,170,0.08), transparent 26%), radial-gradient(circle at bottom right, rgba(32,178,170,0.06), transparent 24%), var(--bg)',
+      'radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 26%), radial-gradient(circle at bottom right, rgba(6,182,212,0.1), transparent 24%), var(--bg)',
     color: 'var(--text)',
     padding: '32px 24px 56px',
     fontFamily: 'var(--font-body)',
@@ -530,8 +530,8 @@ export default function TechnicalTestPage() {
   const panelStyle = {
     width: '100%',
     maxWidth: '620px',
-    background: 'linear-gradient(180deg, rgba(12,24,42,0.96), rgba(9,18,33,0.94))',
-    border: '1px solid rgba(79,172,254,0.14)',
+    background: 'linear-gradient(180deg, rgba(26,58,82,0.94), rgba(15,41,64,0.94))',
+    border: '1px solid var(--border2)',
     borderRadius: '20px',
     padding: '32px',
     boxShadow: '0 28px 80px rgba(0,0,0,0.32)',
@@ -562,8 +562,8 @@ export default function TechnicalTestPage() {
     marginTop: '18px',
     padding: '14px 16px',
     borderRadius: '12px',
-    border: '1px solid rgba(79,172,254,0.16)',
-    background: 'rgba(10, 24, 43, 0.88)',
+    border: '1px solid var(--border2)',
+    background: 'rgba(15, 41, 64, 0.78)',
     color: 'var(--text)',
     outline: 'none',
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)',
@@ -576,7 +576,7 @@ export default function TechnicalTestPage() {
     color: '#fff',
     fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 14px 32px rgba(32,178,170,0.22)',
+    boxShadow: '0 14px 32px rgba(6,182,212,0.26)',
   }
   const secondaryButtonStyle = {
     padding: '13px 22px',
@@ -591,8 +591,8 @@ export default function TechnicalTestPage() {
     marginTop: '18px',
     padding: '14px 16px',
     borderRadius: '14px',
-    background: 'rgba(32,178,170,0.08)',
-    border: '1px solid rgba(32,178,170,0.18)',
+    background: 'rgba(6,182,212,0.12)',
+    border: '1px solid var(--border2)',
     color: 'var(--text2)',
     fontSize: '13px',
     lineHeight: 1.7,
@@ -610,8 +610,8 @@ export default function TechnicalTestPage() {
     fontWeight: 600,
   }
   const testCardStyle = {
-    background: 'linear-gradient(180deg, rgba(10,22,38,0.96), rgba(7,15,29,0.96))',
-    border: '1px solid rgba(79,172,254,0.12)',
+    background: 'linear-gradient(180deg, rgba(22,56,77,0.96), rgba(15,41,64,0.96))',
+    border: '1px solid var(--border)',
     borderRadius: '18px',
     padding: '20px',
     boxShadow: '0 18px 56px rgba(0,0,0,0.24)',
@@ -629,8 +629,8 @@ export default function TechnicalTestPage() {
     minWidth: '92px',
     padding: '10px 14px',
     borderRadius: '14px',
-    border: '1px solid rgba(79,172,254,0.18)',
-    background: 'rgba(9,20,36,0.92)',
+    border: '1px solid var(--border2)',
+    background: 'rgba(15,41,64,0.92)',
     fontSize: '20px',
     fontWeight: 800,
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',

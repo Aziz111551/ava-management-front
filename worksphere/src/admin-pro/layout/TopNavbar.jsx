@@ -54,21 +54,21 @@ export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar 
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+    <header className="sticky top-0 z-40 border-b border-primary-700 bg-primary-900/90 px-4 py-3 backdrop-blur">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onOpenMobileSidebar}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 xl:hidden dark:text-slate-200 dark:hover:bg-slate-800"
+          className="rounded-lg p-2 text-[#B5D3E2] hover:bg-primary-700 xl:hidden"
         >
           <i className="fa-solid fa-bars" aria-hidden />
         </button>
 
         <div className="relative hidden flex-1 max-w-xl md:block">
-          <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7FA0B2]" />
           <input
             placeholder="Search users, transactions, logs..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none transition focus:border-primary-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full rounded-xl border border-primary-600 bg-primary-700/70 py-2.5 pl-10 pr-3 text-sm text-white outline-none transition focus:border-accent-cyan"
           />
         </div>
 
@@ -91,7 +91,7 @@ export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar 
             <button
               type="button"
               onClick={handleBackToAdmin}
-              className="rounded-xl border border-primary-300 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 transition hover:bg-primary-100 dark:border-primary-800 dark:bg-primary-900/40 dark:text-primary-200 dark:hover:bg-primary-900/60"
+              className="rounded-xl border border-primary-500 bg-primary-700/70 px-3 py-2 text-xs font-semibold text-[#B5D3E2] transition hover:bg-primary-600"
               title={`Retour vers la session de ${adminOwnerLabel}`}
             >
               Back to Admin
@@ -100,7 +100,7 @@ export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar 
           <button
             type="button"
             onClick={onToggleDark}
-            className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-xl border border-primary-600 bg-primary-700/70 p-2.5 text-[#B5D3E2] hover:bg-primary-600"
           >
             <i className={`fa-solid ${darkMode ? 'fa-sun' : 'fa-moon'}`} aria-hidden />
           </button>
@@ -109,7 +109,7 @@ export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar 
             <button
               type="button"
               onClick={() => { setOpenNotif((v) => !v); setOpenProfile(false) }}
-              className="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="relative rounded-xl border border-primary-600 bg-primary-700/70 p-2.5 text-[#B5D3E2] hover:bg-primary-600"
             >
               <i className="fa-regular fa-bell" aria-hidden />
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
@@ -120,16 +120,16 @@ export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 mt-2 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+                  className="absolute right-0 mt-2 w-80 overflow-hidden rounded-2xl border border-primary-600 bg-primary-800 shadow-2xl"
                 >
-                  <div className="border-b border-slate-200 px-4 py-3 text-sm font-semibold dark:border-slate-700 dark:text-slate-100">
+                  <div className="border-b border-primary-600 px-4 py-3 text-sm font-semibold text-white">
                     Notifications
                   </div>
-                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <ul className="divide-y divide-primary-700">
                     {notificationsSeed.map((n) => (
                       <li key={n.id} className="px-4 py-3">
-                        <p className="text-sm text-slate-700 dark:text-slate-200">{n.text}</p>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{n.time}</p>
+                        <p className="text-sm text-white">{n.text}</p>
+                        <p className="mt-1 text-xs text-[#7FA0B2]">{n.time}</p>
                       </li>
                     ))}
                   </ul>
@@ -142,11 +142,11 @@ export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar 
             <button
               type="button"
               onClick={() => { setOpenProfile((v) => !v); setOpenNotif(false) }}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900"
+              className="flex items-center gap-2 rounded-xl border border-primary-600 bg-primary-700/70 px-2.5 py-1.5"
             >
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-600 text-xs font-bold text-white">{initials}</span>
-              <span className="hidden text-sm text-slate-700 dark:text-slate-200 md:block">{user?.name || 'Admin'}</span>
-              <i className="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden />
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent-blue text-xs font-bold text-white">{initials}</span>
+              <span className="hidden text-sm text-white md:block">{user?.name || 'Admin'}</span>
+              <i className="fa-solid fa-chevron-down text-xs text-[#7FA0B2]" aria-hidden />
             </button>
             <AnimatePresence>
               {openProfile && (
@@ -154,26 +154,26 @@ export default function TopNavbar({ darkMode, onToggleDark, onOpenMobileSidebar 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+                  className="absolute right-0 mt-2 w-48 rounded-xl border border-primary-600 bg-primary-800 p-2 shadow-xl"
                 >
                   <button
                     type="button"
                     onClick={handleOpenProfile}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-[#B5D3E2] hover:bg-primary-700"
                   >
                     Profile
                   </button>
                   <button
                     type="button"
                     onClick={handleOpenPreferences}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-[#B5D3E2] hover:bg-primary-700"
                   >
                     Preferences
                   </button>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30"
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-rose-400 hover:bg-rose-900/30"
                   >
                     Logout
                   </button>
