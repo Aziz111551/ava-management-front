@@ -8,7 +8,6 @@ import ProfilePage from '../pages/ProfilePage'
 import PreferencesPage from '../pages/PreferencesPage'
 import AdminOverview from '../../pages/admin/AdminOverview'
 import AdminMeetHub from '../../pages/admin/AdminMeetHub'
-import AdminMessaging from '../../pages/admin/AdminMessaging'
 
 function TransitionWrapper({ children }) {
   return (
@@ -30,7 +29,6 @@ function AdminProContentRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route index element={<TransitionWrapper><AdminOverview /></TransitionWrapper>} />
         <Route path="meet" element={<TransitionWrapper><AdminMeetHub /></TransitionWrapper>} />
-        <Route path="messages" element={<TransitionWrapper><AdminMessaging /></TransitionWrapper>} />
         <Route path="insights" element={<TransitionWrapper><AIRecapPage /></TransitionWrapper>} />
         <Route path="dashboard" element={<TransitionWrapper><DashboardPage /></TransitionWrapper>} />
         <Route path="users" element={<TransitionWrapper><UsersPage /></TransitionWrapper>} />

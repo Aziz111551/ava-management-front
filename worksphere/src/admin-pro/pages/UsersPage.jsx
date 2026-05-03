@@ -312,9 +312,8 @@ export default function UsersPage() {
   }
 
   const exportCsv = () => {
-    const headers = ['ID', 'Name', 'Email', 'Role', 'Status', 'Created At', 'Last Login']
+    const headers = ['Name', 'Email', 'Role', 'Status', 'Created At', 'Last Login']
     const rows = sortedUsers.map((u) => [
-      u.id,
       u.name,
       u.email,
       u.role,
@@ -387,7 +386,6 @@ export default function UsersPage() {
           />
         ),
       },
-      { key: 'id', label: 'ID' },
       { key: 'name', label: 'Name' },
       { key: 'email', label: 'Email' },
       {
@@ -541,7 +539,6 @@ export default function UsersPage() {
               <option value="status">Sort: Status</option>
               <option value="createdAt">Sort: Created at</option>
               <option value="lastLoginAt">Sort: Last login</option>
-              <option value="id">Sort: ID</option>
             </select>
             <Button variant="secondary" className="px-3 py-2 text-xs" onClick={toggleSortDir}>
               {sortDir === 'asc' ? 'Asc' : 'Desc'}
@@ -615,10 +612,6 @@ export default function UsersPage() {
               </Button>
             </div>
             <div className="grid gap-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
-                <p className="text-xs text-slate-500 dark:text-slate-400">ID</p>
-                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView.id}</p>
-              </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
                 <p className="text-xs text-slate-500 dark:text-slate-400">Role</p>
                 <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView.role || '—'}</p>

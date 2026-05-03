@@ -7,7 +7,6 @@ const navItems = [
     items: [
       { path: '/admin', icon: 'fa-solid fa-chart-pie', label: 'Vue d’ensemble' },
       { path: '/admin/meet', icon: 'fa-solid fa-video', label: 'Meet & activité' },
-      { path: '/admin/messages', icon: 'fa-solid fa-paper-plane', label: 'Messages RH / employés' },
       { path: '/admin-pro', icon: 'fa-solid fa-table-columns', label: 'Admin Dashboard Pro' },
     ],
   },
@@ -16,7 +15,6 @@ const navItems = [
 const titles = {
   '/admin': 'Administration — Vue d’ensemble',
   '/admin/meet': 'Meet — Synthèse des réunions',
-  '/admin/messages': 'Messagerie administrateur',
   '/admin-pro': 'Admin Dashboard Pro',
 }
 
