@@ -88,10 +88,10 @@ export const startSprintTask = (taskId) =>
   }).then(r => r.json())
 
 export const markSprintTaskDone = (taskId, employeeId) =>
-  fetch(`https://n8n-production-1e13.up.railway.app/webhook/task-complete`, {
+  fetch(`https://backendagentai-production.up.railway.app/internal/tasks/${taskId}/done`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ taskId, employeeId })
+    body: JSON.stringify({ employeeId })
   }).then(r => r.json())
 
 export default API
