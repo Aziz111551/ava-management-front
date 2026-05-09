@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { getMyProjects, getMySprintTasks, getMyConges } from '../../services/api'
+import { getMySprintProjects, getMySprintTasks, getMyConges } from '../../services/api'
 import { StatCard, Grid, SectionTitle, Pill, Btn, FeatureCard } from '../../components/shared/UI'
 
-const MOCK_PROJ = [
-  { _id: '1', name: 'AVA Platform', status: 'active', progress: 67, sprint: 'Sprint 4', team: 5, deadline: '2026-05-30' },
-  { _id: '2', name: 'NEXO Mobile',  status: 'active', progress: 45, sprint: 'Sprint 2', team: 3, deadline: '2026-06-15' },
-]
 const MOCK_TASKS = [
   { _id: '1', title: 'Setup OAuth endpoints',   status: 'todo',        tag: 'Backend', priority: 'high' },
   { _id: '2', title: 'Meeting hub UI',           status: 'in_progress', tag: 'Flutter', priority: 'high' },
@@ -27,12 +23,31 @@ const colLabel  = { todo: 'To do', in_progress: 'In Progress', done: 'Done' }
 export default function EmployeeDashboard() {
   const { user } = useAuth()
   const navigate  = useNavigate()
-  const [projects, setProjects] = useState(MOCK_PROJ)
+  const [projects, setProjects] = useState([])
   const [tasks,    setTasks]    = useState(MOCK_TASKS)
   const [conges,   setConges]   = useState(MOCK_CONGES)
 
   useEffect(() => {
-    getMyProjects().then(r => setProjects(r.data)).catch(() => {})
+    getMySprintProjects()
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mapped = data.map(p => ({
+            _id: p.id,
+            name: p.title,
+            description: p.description,
+            status: 'active',
+            progress: 0,
+            sprint: 'Sprint 1',
+            team: 1,
+            deadline: new Date(
+              Date.now() + 30 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            stack: p.tags || []
+          }))
+          setProjects(mapped)
+        }
+      })
+      .catch(() => {})
     const u = JSON.parse(localStorage.getItem('ws_user') || '{}')
     const eid = u._id || u.id
     if (eid) getMySprintTasks(eid).then(data => setTasks(Array.isArray(data) ? data : [])).catch(() => {})
@@ -59,14 +74,14 @@ export default function EmployeeDashboard() {
       <SectionTitle>Quick access</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '28px' }}>
         <FeatureCard title="My Projects" description="Manage and track your active projects" gradient="var(--grad-cyan)" icon={<i className="fa-solid fa-folder-open" aria-hidden />} onClick={() => navigate('/employee/projets')} />
-        <FeatureCard title="My Workspace" description="Your sprint tasks workspace" gradient="var(--grad-blue)" icon={<i className="fa-solid fa-list-check" aria-hidden />} onClick={() => navigate('/employee/taches')} />
+        <FeatureCard title="My Workspace" description="Your sprint tasks workspace" gradient="var(--grad-blue)" icon={<i className="fa-solid fa-list-check" aria-hidden />} onClick={() => { const id = projects[0]?._id; navigate(id ? `/employee/workspace/${id}` : '/employee/projets') }} />
         <FeatureCard title="Leave Request" description="Submit a new request" gradient="var(--grad-pink)" icon={<i className="fa-solid fa-umbrella-beach" aria-hidden />} onClick={() => navigate('/employee/conges')} />
         <FeatureCard title="Sick Leave" description="Declare a medical leave" gradient="var(--grad-amber)" icon={<i className="fa-solid fa-notes-medical" aria-hidden />} onClick={() => navigate('/employee/maladie')} />
       </div>
 
       {/* Stats */}
       <Grid cols={4} gap={12}>
-        <StatCard label="Ongoing projects"   value={projects.filter(p => p.status === 'active').length} gradient="var(--grad-cyan)" />
+        <StatCard label="Ongoing projects"   value={projects.length} gradient="var(--grad-cyan)" />
         <StatCard label="My Tasks"  value={tasks.filter(t => t.status === 'in_progress').length} gradient="var(--grad-blue)" />
         <StatCard label="Done"        value={tasks.filter(t => t.status === 'done').length} gradient="var(--grad-pink)" />
         <StatCard label="Pending leave requests" value={conges.filter(c => c.status === 'pending').length} gradient="var(--grad-amber)" />
@@ -83,10 +98,11 @@ export default function EmployeeDashboard() {
       </SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '28px' }}>
         {projects.map(p => (
-          <div key={p._id} style={{
+          <div key={p._id} onClick={() => navigate(`/employee/workspace/${p._id}`)} style={{
             background: 'var(--card)', border: '1px solid var(--border2)',
             borderRadius: 'var(--radius)', padding: '20px',
             backdropFilter: 'blur(10px)',
+            cursor: 'pointer',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
