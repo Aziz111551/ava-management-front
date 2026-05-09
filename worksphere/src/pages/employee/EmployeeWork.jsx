@@ -417,6 +417,17 @@ export function ProjectWorkspace() {
 
   const priorityColor = { HIGH: 'red', MEDIUM: 'amber', LOW: 'default' }
 
+  const memberColors = [
+    '#20b2aa', '#f59e0b', '#8b5cf6',
+    '#ef4444', '#22c55e', '#3b82f6',
+    '#ec4899', '#f97316'
+  ]
+
+  const getMemberColor = (memberId) => {
+    const index = members.findIndex(m => m.id === memberId)
+    return memberColors[index % memberColors.length] || '#64748b'
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
@@ -449,10 +460,10 @@ export function ProjectWorkspace() {
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '50%',
-                background: m.id === myId ? 'var(--cyan2)' : 'var(--bg3)',
+                background: getMemberColor(m.id),
                 border: m.id === myId ? '2px solid var(--cyan)' : '2px solid var(--border)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '12px', fontWeight: '600', color: m.id === myId ? '#fff' : 'var(--text2)'
+                fontSize: '12px', fontWeight: '600', color: '#fff'
               }}>
                 {m.fullName?.charAt(0)?.toUpperCase() || '?'}
               </div>
@@ -564,18 +575,20 @@ export function ProjectWorkspace() {
                   }}>
                     <div style={{
                       width: '16px', height: '16px', borderRadius: '50%',
-                      background: isMyTask ? 'var(--cyan2)' : 'var(--bg3)',
+                      background: getMemberColor(task.assignedEmployeeId),
                       border: '1px solid var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '8px', fontWeight: '700',
                       color: isMyTask ? '#fff' : 'var(--text2)',
                       flexShrink: 0
                     }}>
-                      {owner?.fullName?.charAt(0)?.toUpperCase() || '?'}
+                      {owner?.fullName?.charAt(0)?.toUpperCase() ||
+                        members.find(m => m.id === task.assignedEmployeeId)
+                          ?.fullName?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                     <span style={{
                       fontSize: '10px',
-                      color: isMyTask ? 'var(--cyan2)' : 'var(--text3)',
+                      color: getMemberColor(task.assignedEmployeeId),
                       fontWeight: isMyTask ? '600' : '400'
                     }}>
                       {isMyTask ? 'You' : (owner?.fullName || 'Unassigned')}
