@@ -553,11 +553,34 @@ export function ProjectWorkspace() {
                     </button>
                   )}
 
-                  {!isMyTask && (
-                    <div style={{ fontSize: '10px', color: 'var(--text3)', textAlign: 'right', marginTop: '4px' }}>
-                      {owner?.fullName || 'Unassigned'}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginTop: '6px',
+                    padding: '4px 8px',
+                    background: isMyTask ? 'rgba(32,178,170,0.08)' : 'rgba(255,255,255,0.03)',
+                    borderRadius: '6px'
+                  }}>
+                    <div style={{
+                      width: '16px', height: '16px', borderRadius: '50%',
+                      background: isMyTask ? 'var(--cyan2)' : 'var(--bg3)',
+                      border: '1px solid var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '8px', fontWeight: '700',
+                      color: isMyTask ? '#fff' : 'var(--text2)',
+                      flexShrink: 0
+                    }}>
+                      {owner?.fullName?.charAt(0)?.toUpperCase() || '?'}
                     </div>
-                  )}
+                    <span style={{
+                      fontSize: '10px',
+                      color: isMyTask ? 'var(--cyan2)' : 'var(--text3)',
+                      fontWeight: isMyTask ? '600' : '400'
+                    }}>
+                      {isMyTask ? 'You' : (owner?.fullName || 'Unassigned')}
+                    </span>
+                  </div>
 
                   {col.key === 'done' && (
                     <div style={{ textAlign: 'center', fontSize: '11px', color: 'var(--green)', opacity: 0.8, marginTop: '6px' }}>
