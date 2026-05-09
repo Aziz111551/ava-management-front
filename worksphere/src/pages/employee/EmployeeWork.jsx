@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getMyProjects, addProject, getMySprintTasks, startSprintTask, markSprintTaskDone, getProjectWorkspace } from '../../services/api'
+import { addProject, getMySprintProjects, getMySprintTasks, startSprintTask, markSprintTaskDone, getProjectWorkspace } from '../../services/api'
 import { SectionTitle, Pill, Btn, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
 
 // ── PROJECTS ──────────────────────────────────────────────────
@@ -16,7 +16,26 @@ export function MesProjets() {
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
 
-  useEffect(() => { getMyProjects().then(r => setProjects(r.data)).catch(() => {}) }, [])
+  useEffect(() => {
+    getMySprintProjects()
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mapped = data.map(p => ({
+            _id: p.id,
+            name: p.title,
+            description: p.description,
+            status: 'active',
+            progress: 0,
+            sprint: 'Sprint 1',
+            team: 1,
+            deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            stack: p.tags || []
+          }))
+          setProjects(mapped)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const handleAdd = async () => {
     const newP = { ...form, _id: Date.now().toString(), status: 'active', progress: 0, sprint: 'Sprint 1', team: 1, stack: form.stack.split(',').map(s => s.trim()) }

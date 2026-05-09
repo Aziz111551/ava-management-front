@@ -98,4 +98,8 @@ export const getProjectWorkspace = (projectId) =>
   fetch(`https://backendagentai-production.up.railway.app/internal/projects/${projectId}/workspace`)
     .then(r => r.json())
 
+export const getMySprintProjects = () =>
+  fetch('https://backendagentai-production.up.railway.app/internal/projects/accepted')
+    .then(r => r.json())
+
 export default API
