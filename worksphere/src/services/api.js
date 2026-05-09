@@ -94,4 +94,8 @@ export const markSprintTaskDone = (taskId, employeeId) =>
     body: JSON.stringify({ employeeId })
   }).then(r => r.json())
 
+export const getProjectWorkspace = (projectId) =>
+  fetch(`https://backendagentai-production.up.railway.app/internal/projects/${projectId}/workspace`)
+    .then(r => r.json())
+
 export default API

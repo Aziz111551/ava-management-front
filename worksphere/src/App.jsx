@@ -18,7 +18,7 @@ import RHMeetingRoom from './pages/rh/RHMeetingRoom'
 
 import EmployeeLayout from './pages/employee/EmployeeLayout'
 import EmployeeDashboard from './pages/employee/Dashboard'
-import { MesProjets, TachesTrello } from './pages/employee/EmployeeWork'
+import { MesProjets, TachesTrello, ProjectWorkspace } from './pages/employee/EmployeeWork'
 import { DemandeConge, DeclarerMaladie } from './pages/employee/EmployeeRH'
 import EmployeeMeetings from './pages/employee/EmployeeMeetings'
 import EmployeeMeetingRoom from './pages/employee/EmployeeMeetingRoom'
@@ -154,6 +154,7 @@ export default function App() {
             <Route index element={<Navigate to="/employee/dashboard" replace />} />
             <Route path="dashboard" element={<EmployeeDashboard />} />
             <Route path="projets" element={<MesProjets />} />
+            <Route path="workspace/:projectId" element={<ProjectWorkspace />} />
             <Route path="taches" element={<TachesTrello />} />
             <Route path="conges" element={<DemandeConge />} />
             <Route path="maladie" element={<DeclarerMaladie />} />

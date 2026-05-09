@@ -23,6 +23,7 @@ const navItems = [
 const titles = {
   '/employee/dashboard': 'Dashboard',
   '/employee/projets':   'My projects',
+  '/employee/workspace': 'Project Workspace',
   '/employee/taches':    'My Workspace',
   '/employee/conges':    'Leave Request',
   '/employee/maladie':   'Sick Leave',

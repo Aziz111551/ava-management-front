@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { getMyProjects, addProject, getMySprintTasks, startSprintTask, markSprintTaskDone } from '../../services/api'
+import { useNavigate, useParams } from 'react-router-dom'
+import { getMyProjects, addProject, getMySprintTasks, startSprintTask, markSprintTaskDone, getProjectWorkspace } from '../../services/api'
 import { SectionTitle, Pill, Btn, StatCard, Grid, Modal, Field, inputStyle } from '../../components/shared/UI'
 
 // ── PROJECTS ──────────────────────────────────────────────────
@@ -10,6 +11,7 @@ const MOCK = [
 const EMPTY = { name: '', description: '', deadline: '', stack: '' }
 
 export function MesProjets() {
+  const navigate = useNavigate()
   const [projects, setProjects] = useState(MOCK)
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
@@ -43,7 +45,7 @@ export function MesProjets() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         {projects.map(p => (
-          <div key={p._id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+          <div key={p._id} onClick={() => navigate(`/employee/workspace/${p._id}`)} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: '600', color: 'var(--text)', letterSpacing: '-0.3px' }}>{p.name}</div>
@@ -295,6 +297,257 @@ export function TachesTrello() {
                 )}
               </div>
             ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function ProjectWorkspace() {
+  const { projectId } = useParams()
+  const navigate = useNavigate()
+  const storedUser = JSON.parse(localStorage.getItem('ws_user') || '{}')
+  const myId = storedUser._id || storedUser.id
+
+  const [workspace, setWorkspace] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [actionId, setActionId] = useState(null)
+
+  useEffect(() => {
+    if (!projectId) return
+    setLoading(true)
+    getProjectWorkspace(projectId)
+      .then(data => setWorkspace(data))
+      .catch(() => setWorkspace(null))
+      .finally(() => setLoading(false))
+  }, [projectId])
+
+  const handleStart = async (task) => {
+    if (actionId) return
+    setActionId(task.id)
+    try {
+      await startSprintTask(task.id)
+      setWorkspace(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t =>
+          t.id === task.id ? { ...t, status: 'in_progress' } : t
+        )
+      }))
+    } catch(e) { console.error(e) }
+    finally { setActionId(null) }
+  }
+
+  const handleDone = async (task) => {
+    if (actionId) return
+    setActionId(task.id)
+    try {
+      await markSprintTaskDone(task.id, myId)
+      setWorkspace(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t =>
+          t.id === task.id ? { ...t, status: 'done' } : t
+        )
+      }))
+    } catch(e) { console.error(e) }
+    finally { setActionId(null) }
+  }
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
+      Loading workspace...
+    </div>
+  )
+
+  if (!workspace || workspace.error) return (
+    <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
+      Workspace not found.
+      <br />
+      <button onClick={() => navigate('/employee/projets')}
+        style={{ marginTop: '16px', color: 'var(--cyan2)', background: 'none', border: 'none', cursor: 'pointer' }}>
+        ← Back to Projects
+      </button>
+    </div>
+  )
+
+  const tasks = workspace.tasks || []
+  const members = workspace.members || []
+
+  const cols = [
+    {
+      key: 'todo',
+      label: 'To Do',
+      color: 'var(--cyan)',
+      items: tasks.filter(t =>
+        t.status === 'assigned' || t.status === 'TODO' || t.status === 'todo'
+      )
+    },
+    {
+      key: 'in_progress',
+      label: 'In Progress',
+      color: 'var(--amber)',
+      items: tasks.filter(t => t.status === 'in_progress')
+    },
+    {
+      key: 'done',
+      label: 'Done',
+      color: 'var(--green)',
+      items: tasks.filter(t => t.status === 'done' || t.status === 'DONE')
+    }
+  ]
+
+  const priorityColor = { HIGH: 'red', MEDIUM: 'amber', LOW: 'default' }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+        <button onClick={() => navigate('/employee/projets')}
+          style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '13px' }}>
+          ← Back
+        </button>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text)', fontFamily: 'var(--font-display)' }}>
+            {workspace.project?.title}
+          </h2>
+          <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>
+            {workspace.totalTasks} tasks · {workspace.doneTasks} completed
+          </div>
+        </div>
+      </div>
+
+      <div style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '16px',
+        marginBottom: '20px'
+      }}>
+        <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          Team Members
+        </div>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          {members.map(m => (
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: m.id === myId ? 'var(--cyan2)' : 'var(--bg3)',
+                border: m.id === myId ? '2px solid var(--cyan)' : '2px solid var(--border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '12px', fontWeight: '600', color: m.id === myId ? '#fff' : 'var(--text2)'
+              }}>
+                {m.fullName?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', color: 'var(--text)', fontWeight: m.id === myId ? '600' : '400' }}>
+                  {m.fullName} {m.id === myId ? '(you)' : ''}
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--text3)' }}>
+                  {m.doneTasks}/{m.totalTasks} done · {m.progress}%
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+        {cols.map(col => (
+          <div key={col.key} style={{
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '16px',
+            minHeight: '300px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: col.color, fontFamily: 'var(--font-display)' }}>
+                {col.label}
+              </span>
+              <span style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text3)', borderRadius: '10px', padding: '1px 8px', fontSize: '11px' }}>
+                {col.items.length}
+              </span>
+            </div>
+
+            {col.items.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text3)', fontSize: '12px' }}>
+                No tasks
+              </div>
+            )}
+
+            {col.items.map(task => {
+              const isMyTask = task.assignedEmployeeId === myId
+              const owner = members.find(m => m.id === task.assignedEmployeeId)
+              return (
+                <div key={task.id} style={{
+                  background: 'var(--bg3)',
+                  border: isMyTask ? '1px solid rgba(32,178,170,0.3)' : '1px solid var(--border)',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  marginBottom: '8px',
+                  opacity: task.status === 'done' || task.status === 'DONE' ? 0.7 : 1,
+                  transition: 'border-color 0.15s'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>
+                      {task.sprintTitle}
+                    </div>
+                    {owner && (
+                      <div style={{
+                        width: '20px', height: '20px', borderRadius: '50%',
+                        background: owner.id === myId ? 'var(--cyan2)' : 'var(--bg3)',
+                        border: '1px solid var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '9px', fontWeight: '600', color: owner.id === myId ? '#fff' : 'var(--text2)',
+                        flexShrink: 0
+                      }}>
+                        {owner.fullName?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: '500', lineHeight: 1.4, marginBottom: '6px' }}>
+                    {task.title}
+                  </div>
+
+                  {task.deliverable && (
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '8px' }}>
+                      <span style={{ color: 'var(--text2)' }}>Deliverable: </span>{task.deliverable}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMyTask && col.key !== 'done' ? '10px' : '0' }}>
+                    <Pill type={priorityColor[task.priority] || 'default'}>{task.priority}</Pill>
+                    <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{task.estimatedHours}h</span>
+                  </div>
+
+                  {isMyTask && col.key === 'todo' && (
+                    <button onClick={() => handleStart(task)} disabled={actionId === task.id}
+                      style={{ width: '100%', padding: '7px', borderRadius: '7px', background: 'rgba(32,178,170,0.1)', border: '1px solid rgba(32,178,170,0.25)', color: 'var(--cyan2)', fontSize: '12px', fontWeight: '600', cursor: actionId === task.id ? 'not-allowed' : 'pointer' }}>
+                      {actionId === task.id ? '...' : '▶ Start Working'}
+                    </button>
+                  )}
+
+                  {isMyTask && col.key === 'in_progress' && (
+                    <button onClick={() => handleDone(task)} disabled={actionId === task.id}
+                      style={{ width: '100%', padding: '7px', borderRadius: '7px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)', color: 'var(--green)', fontSize: '12px', fontWeight: '600', cursor: actionId === task.id ? 'not-allowed' : 'pointer' }}>
+                      {actionId === task.id ? '...' : '✓ Mark as Done'}
+                    </button>
+                  )}
+
+                  {!isMyTask && (
+                    <div style={{ fontSize: '10px', color: 'var(--text3)', textAlign: 'right', marginTop: '4px' }}>
+                      {owner?.fullName || 'Unassigned'}
+                    </div>
+                  )}
+
+                  {col.key === 'done' && (
+                    <div style={{ textAlign: 'center', fontSize: '11px', color: 'var(--green)', opacity: 0.8, marginTop: '6px' }}>
+                      ✓ Completed
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         ))}
       </div>
