@@ -5,10 +5,10 @@ import { fetchMeetings } from '../../services/meetings'
 
 const surface = {
   panel: {
-    background: 'linear-gradient(165deg, rgba(26,58,82,0.94) 0%, rgba(15,41,64,0.92) 100%)',
+    background: 'var(--admin-panel-bg)',
     border: '1px solid var(--border2)',
     borderRadius: '16px',
-    boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 28px 56px rgba(0,0,0,0.42)',
+    boxShadow: 'var(--admin-panel-shadow)',
   },
   th: {
     padding: '11px 14px',
@@ -17,7 +17,7 @@ const surface = {
     letterSpacing: '0.11em',
     textTransform: 'uppercase',
     color: 'var(--text3)',
-    borderBottom: '1px solid rgba(148,163,184,0.12)',
+    borderBottom: '1px solid var(--table-border)',
     textAlign: 'left',
     whiteSpace: 'nowrap',
   },
@@ -25,7 +25,7 @@ const surface = {
     padding: '12px 14px',
     fontSize: '13px',
     color: 'var(--text2)',
-    borderBottom: '1px solid rgba(148,163,184,0.08)',
+    borderBottom: '1px solid var(--table-border-muted)',
     verticalAlign: 'middle',
   },
 }

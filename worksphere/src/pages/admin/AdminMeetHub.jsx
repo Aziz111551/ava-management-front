@@ -50,7 +50,7 @@ export default function AdminMeetHub() {
   }, [meetings])
 
   return (
-    <div style={{ padding: '28px', maxWidth: '1280px' }}>
+    <div style={{ padding: '28px', maxWidth: '100%' }}>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{
           margin: 0,
@@ -91,13 +91,13 @@ export default function AdminMeetHub() {
           <div
             key={x.k}
             style={{
-              background: 'linear-gradient(145deg, rgba(99,102,241,0.12) 0%, rgba(15,23,42,0.85) 100%)',
-              border: '1px solid rgba(129,140,248,0.25)',
+              background: 'var(--admin-kpi-surface)',
+              border: '1px solid var(--admin-kpi-border)',
               borderRadius: 'var(--radius-lg)',
               padding: '18px 20px',
             }}
           >
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#c4b5fd', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--admin-kpi-label)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               {x.k}
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '800', color: 'var(--text)', marginTop: '6px' }}>
@@ -162,8 +162,8 @@ export default function AdminMeetHub() {
                         borderRadius: '999px',
                         fontSize: '11px',
                         fontWeight: '600',
-                        background: 'rgba(99,102,241,0.15)',
-                        color: '#c4b5fd',
+                        background: 'var(--admin-badge-bg)',
+                        color: 'var(--admin-badge-fg)',
                       }}>
                         {m.status || '—'}
                       </span>
