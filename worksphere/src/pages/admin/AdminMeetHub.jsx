@@ -4,10 +4,34 @@ import { fetchMeetings } from '../../services/meetings'
 function formatWhen(iso) {
   if (!iso) return '—'
   try {
-    const d = new Date(iso)
-    return d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+    return new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
   } catch {
     return String(iso)
+  }
+}
+
+function meetingTypeLabel(type) {
+  if (type === 'employee_rh') return 'Réunion RH ↔ employé(s)'
+  if (type === 'employee_candidate_rh') return 'Réunion RH · candidat + employé(s)'
+  if (type === 'candidate_phase2') return 'Réunion RH ↔ candidat'
+  return type || 'Réunion'
+}
+
+function reportBadge(meeting) {
+  const hasReport = meeting.reportStatus === 'ready' || (meeting.reportPreview && Object.keys(meeting.reportPreview).length > 0)
+  if (hasReport) {
+    return {
+      label: 'Prêt',
+      bg: 'rgba(59,130,246,0.18)',
+      color: '#60a5fa',
+      border: '1px solid rgba(96,165,250,0.35)',
+    }
+  }
+  return {
+    label: 'Non évalué en raison de l’absence de transcription',
+    bg: 'rgba(30,58,138,0.2)',
+    color: '#93c5fd',
+    border: '1px solid rgba(96,165,250,0.28)',
   }
 }
 
@@ -15,6 +39,7 @@ export default function AdminMeetHub() {
   const [meetings, setMeetings] = useState([])
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(true)
+  const [opened, setOpened] = useState({})
 
   useEffect(() => {
     let cancelled = false
@@ -35,159 +60,136 @@ export default function AdminMeetHub() {
 
   const summary = useMemo(() => {
     const list = meetings
-    const withReport = list.filter((m) => m.reportStatus === 'ready' || (m.reportPreview && Object.keys(m.reportPreview).length)).length
+    const reports = list.filter((m) => m.reportStatus === 'ready' || (m.reportPreview && Object.keys(m.reportPreview).length > 0)).length
     const live = list.filter((m) => m.status === 'live' || m.status === 'in_progress').length
-    const done = list.filter((m) => m.status === 'ended' || m.status === 'completed').length
-    return { total: list.length, withReport, live, done }
+    return { total: list.length, reports, live }
   }, [meetings])
 
-  const recent = useMemo(() => {
+  const rows = useMemo(() => {
     return [...meetings].sort((a, b) => {
       const ta = new Date(a.scheduledAt || 0).getTime()
       const tb = new Date(b.scheduledAt || 0).getTime()
       return tb - ta
-    }).slice(0, 25)
+    })
   }, [meetings])
 
   return (
-    <div style={{ padding: '28px', maxWidth: '100%' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{
-          margin: 0,
-          fontFamily: 'var(--font-display)',
-          fontSize: '22px',
-          fontWeight: '800',
-          color: 'var(--text)',
-        }}>
-          Meet — synthèse
-        </h1>
-        <p style={{ margin: '8px 0 0', fontSize: '14px', color: 'var(--text2)', lineHeight: 1.55, maxWidth: '800px' }}>
-          Résumé orienté « ce qui se passe » : les réunions intégrées sont utilisées depuis le portail web et les parcours
-          invités (liens de jointure). Les noms et e-mails ci-dessous proviennent des métadonnées enregistrées à la création de la salle.
-        </p>
-      </div>
+    <div style={{ padding: '24px 26px 36px', maxWidth: '1300px' }}>
+      <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: 'var(--text)' }}>
+        Réunions intégrées
+      </h1>
+      <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, maxWidth: 860 }}>
+        Vue admin centralisée des réunions RH avec aperçu des rapports IA. Utilisez “Voir détail” pour déplier le contenu du compte rendu.
+      </p>
 
       {err && (
-        <div style={{
-          marginBottom: '16px', padding: '12px 14px', borderRadius: 'var(--radius-sm)',
-          background: 'var(--red-bg)', border: '1px solid rgba(255,82,82,0.2)', color: 'var(--red)', fontSize: '13px',
-        }}>
+        <div style={{ marginTop: 16, fontSize: 13, color: 'var(--red)' }}>
           {err}
         </div>
       )}
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '14px',
-        marginBottom: '24px',
-      }}>
-        {[
-          { k: 'Total', v: loading ? '…' : summary.total, sub: 'réunions' },
-          { k: 'En direct / actives', v: loading ? '…' : summary.live, sub: 'sessions' },
-          { k: 'Terminées', v: loading ? '…' : summary.done, sub: 'statuts clos' },
-          { k: 'Avec rapport', v: loading ? '…' : summary.withReport, sub: 'aperçu ou rapport' },
-        ].map((x) => (
-          <div
-            key={x.k}
-            style={{
-              background: 'var(--admin-kpi-surface)',
-              border: '1px solid var(--admin-kpi-border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '18px 20px',
-            }}
-          >
-            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--admin-kpi-label)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              {x.k}
-            </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '800', color: 'var(--text)', marginTop: '6px' }}>
-              {x.v}
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>{x.sub}</div>
-          </div>
-        ))}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14, marginBottom: 18 }}>
+        <span style={{ fontSize: 12, color: 'var(--text2)', padding: '6px 10px', borderRadius: 999, border: '1px solid var(--border2)', background: 'var(--card)' }}>
+          {loading ? '…' : summary.total} réunions
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--text2)', padding: '6px 10px', borderRadius: 999, border: '1px solid var(--border2)', background: 'var(--card)' }}>
+          {loading ? '…' : summary.live} en direct
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--text2)', padding: '6px 10px', borderRadius: 999, border: '1px solid var(--border2)', background: 'var(--card)' }}>
+          {loading ? '…' : summary.reports} rapports prêts
+        </span>
       </div>
 
-      <div style={{
-        background: 'var(--card)',
-        border: '1px solid var(--border2)',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid var(--border2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-        }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: '700', fontSize: '15px', color: 'var(--text)' }}>
-            Dernières réunions
-          </div>
-          <span style={{ fontSize: '12px', color: 'var(--text3)' }}>Tri par date planifiée</span>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', color: 'var(--text3)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border2)' }}>Quand</th>
-                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border2)' }}>Type</th>
-                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border2)' }}>Statut</th>
-                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border2)' }}>RH</th>
-                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border2)' }}>Principal invité</th>
-                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border2)' }}>Co-participants</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: '28px 16px', color: 'var(--text3)', textAlign: 'center' }}>Chargement…</td>
-                </tr>
-              ) : recent.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: '28px 16px', color: 'var(--text3)', textAlign: 'center' }}>
-                    Aucune réunion enregistrée.
-                  </td>
-                </tr>
-              ) : (
-                recent.map((m) => (
-                  <tr key={m.id} style={{ borderBottom: '1px solid var(--border2)' }}>
-                    <td style={{ padding: '12px 16px', color: 'var(--text2)', whiteSpace: 'nowrap' }}>{formatWhen(m.scheduledAt)}</td>
-                    <td style={{ padding: '12px 16px', color: 'var(--text)' }}>{m.type || '—'}</td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '3px 10px',
-                        borderRadius: '999px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        background: 'var(--admin-badge-bg)',
-                        color: 'var(--admin-badge-fg)',
-                      }}>
-                        {m.status || '—'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', color: 'var(--text2)', maxWidth: '200px' }}>
-                      <div style={{ fontWeight: '600', color: 'var(--text)' }}>{m.rhName || '—'}</div>
-                      <div style={{ fontSize: '11px', opacity: 0.85 }}>{m.rhEmail || ''}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px', color: 'var(--text2)', maxWidth: '200px' }}>
-                      <div style={{ fontWeight: '600', color: 'var(--text)' }}>{m.participantName || '—'}</div>
-                      <div style={{ fontSize: '11px', opacity: 0.85 }}>{m.participantEmail || ''}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px', color: 'var(--text3)', fontSize: '12px' }}>
-                      {(m.coParticipants || []).length
-                        ? (m.coParticipants || []).map((p) => p.name || p.email).filter(Boolean).join(', ')
-                        : '—'}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div style={{ marginBottom: 14, fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
+        Rapports détaillés par réunion
       </div>
+
+      {loading ? (
+        <div style={{ fontSize: 13, color: 'var(--text3)' }}>Chargement des réunions…</div>
+      ) : rows.length === 0 ? (
+        <div style={{ fontSize: 13, color: 'var(--text3)' }}>Aucune réunion enregistrée.</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 12 }}>
+          {rows.map((item) => {
+            const badge = reportBadge(item)
+            const expanded = !!opened[item.id]
+            return (
+              <div
+                key={item.id}
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border2)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '14px 16px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: 'var(--text)' }}>
+                      {(item.participantName || 'Réunion').toLowerCase()}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
+                      {meetingTypeLabel(item.type)} · {formatWhen(item.scheduledAt)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 999, ...badge }}>
+                      {badge.label}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOpened((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                      style={{
+                        border: 'none',
+                        borderRadius: 999,
+                        background: 'linear-gradient(90deg, #3b82f6, #22d3ee)',
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        padding: '7px 14px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {expanded ? 'Masquer' : 'Voir détail'}
+                    </button>
+                  </div>
+                </div>
+
+                {expanded && (
+                  <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                        Avis sur le participant
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>
+                        {item.reportPreview?.participantOpinion || 'Sans transcription, il est difficile de formuler un avis précis.'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                        Recommandation RH
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>
+                        {item.reportPreview?.recommendation || 'Planifier une nouvelle réunion pour obtenir plus de détails.'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                        Ce qui a été discuté
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>
+                        {item.reportPreview?.conversationSummary || 'Résumé non disponible pour cette réunion.'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 
 const items = [
   { to: '/admin-pro', label: 'Vue d’ensemble', icon: 'fa-solid fa-chart-pie', end: true },
-  { to: '/admin-pro/meet', label: 'Meet & activité', icon: 'fa-solid fa-video' },
+  { to: '/admin-pro/meet', label: 'Réunions intégrées', icon: 'fa-solid fa-video' },
   { to: '/admin-pro/insights', label: 'Insights IA', icon: 'fa-solid fa-wand-magic-sparkles' },
   { to: '/admin-pro/dashboard', label: 'Admin Dashboard Pro', icon: 'fa-solid fa-chart-line' },
   { to: '/admin-pro/users', label: 'Users', icon: 'fa-solid fa-users' },
