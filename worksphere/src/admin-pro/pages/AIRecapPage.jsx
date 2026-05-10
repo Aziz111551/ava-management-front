@@ -190,7 +190,7 @@ export default function AIRecapPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
-      <div className="mx-auto max-w-6xl space-y-5">
+      <div className="w-full space-y-5">
         <section className="ap-panel overflow-hidden p-0">
           <div className="relative grid gap-4 border-b border-slate-200 p-6 dark:border-slate-800 lg:grid-cols-[1.4fr_1fr]">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-500/10 via-transparent to-violet-500/10" />

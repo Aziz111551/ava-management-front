@@ -9,7 +9,7 @@ export default function PreferencesPage() {
   }, [darkMode])
 
   return (
-    <section className="mx-auto w-full max-w-3xl rounded-2xl border border-primary-700 bg-primary-700/70 p-6 shadow-soft">
+    <section className="w-full rounded-2xl border border-primary-700 bg-primary-700/70 p-6 shadow-soft">
       <h1 className="text-2xl font-bold text-white">Preferences</h1>
       <p className="mt-2 text-sm text-[#B5D3E2]">
         Paramètres d’affichage de l’interface.

@@ -1,6 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion'
 
-export default function Modal({ open, title, children, onClose }) {
+export default function Modal({ open, title, children, onClose, panelClassName }) {
+  const panel =
+    panelClassName ||
+    'w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl'
   return (
     <AnimatePresence>
       {open && (
@@ -12,7 +15,7 @@ export default function Modal({ open, title, children, onClose }) {
           onClick={onClose}
         >
           <motion.div
-            className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+            className={panel}
             initial={{ y: 18, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 18, opacity: 0 }}

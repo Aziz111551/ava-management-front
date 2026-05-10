@@ -18,7 +18,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+    <section className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Profile</h1>
       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
         Informations de votre compte administrateur.

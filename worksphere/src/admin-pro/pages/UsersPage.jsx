@@ -81,6 +81,7 @@ export default function UsersPage() {
   })
 
   const openModal = (row, nextMode) => {
+    setQuickView(null)
     if (row) {
       setSelected(row)
       setForm({
@@ -452,7 +453,7 @@ export default function UsersPage() {
       initial={{ opacity: 0, x: 10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
-      className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]"
+      className="w-full space-y-4"
     >
       <Card
         title="Users Management"
@@ -495,7 +496,7 @@ export default function UsersPage() {
             }}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or email..."
-            className="w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary-400 dark:border-slate-700 dark:bg-slate-900"
+            className="min-w-[12rem] flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary-400 dark:border-slate-700 dark:bg-slate-900"
           />
           <select
             value={roleFilter}
@@ -593,51 +594,45 @@ export default function UsersPage() {
         </div>
       </Card>
 
-      <motion.aside
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-24 dark:border-slate-800 dark:bg-slate-950/70"
+      <Modal
+        open={!!quickView}
+        onClose={() => {
+          if (impersonating) return
+          setQuickView(null)
+        }}
+        title={quickView ? (quickView.name || 'Utilisateur') : ''}
+        panelClassName="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
       >
-        {quickView ? (
+        {quickView && (
           <>
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Quick details</p>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{quickView.name || 'Utilisateur'}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{quickView.email || '—'}</p>
+            <p className="text-sm text-slate-400">{quickView.email || '—'}</p>
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-sm">
+                <p className="text-xs text-slate-500">Role</p>
+                <p className="mt-1 font-medium text-slate-100">{quickView.role || '—'}</p>
               </div>
-              <Button variant="ghost" className="px-2.5 py-1.5 text-xs" onClick={() => setQuickView(null)}>
-                Close
-              </Button>
-            </div>
-            <div className="grid gap-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
-                <p className="text-xs text-slate-500 dark:text-slate-400">Role</p>
-                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView.role || '—'}</p>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-sm">
+                <p className="text-xs text-slate-500">Status</p>
+                <p className="mt-1 font-medium text-slate-100">{quickView.status || '—'}</p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
-                <p className="text-xs text-slate-500 dark:text-slate-400">Status</p>
-                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView.status || '—'}</p>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-sm">
+                <p className="text-xs text-slate-500">Department</p>
+                <p className="mt-1 font-medium text-slate-100">{quickView._raw?.department || '—'}</p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
-                <p className="text-xs text-slate-500 dark:text-slate-400">Department</p>
-                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{quickView._raw?.department || '—'}</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
-                <p className="text-xs text-slate-500 dark:text-slate-400">Created at</p>
-                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">
+              <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-sm">
+                <p className="text-xs text-slate-500">Created at</p>
+                <p className="mt-1 font-medium text-slate-100">
                   {formatDateTime(pickUserDate(quickView, ['createdAt', 'created_at', 'createdOn']))}
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60">
-                <p className="text-xs text-slate-500 dark:text-slate-400">Last login</p>
-                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">
+              <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-sm">
+                <p className="text-xs text-slate-500">Last login</p>
+                <p className="mt-1 font-medium text-slate-100">
                   {formatDateTime(pickUserDate(quickView, ['lastLoginAt', 'lastLogin', 'lastSeenAt', 'updatedAt']))}
                 </p>
               </div>
             </div>
-            <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+            <div className="mt-4 border-t border-slate-800 pt-4">
               <Button
                 variant="primary"
                 className="w-full"
@@ -649,12 +644,8 @@ export default function UsersPage() {
               </Button>
             </div>
           </>
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
-            Sélectionne un utilisateur avec <strong>View</strong> pour voir ses détails ici.
-          </div>
         )}
-      </motion.aside>
+      </Modal>
 
       <Modal
         open={open}
