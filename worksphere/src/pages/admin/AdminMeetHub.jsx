@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { jsPDF } from 'jspdf'
 import { fetchMeetings } from '../../services/meetings'
 
 function formatWhen(iso) {
@@ -33,6 +34,16 @@ function reportBadge(meeting) {
     color: '#93c5fd',
     border: '1px solid rgba(96,165,250,0.28)',
   }
+}
+
+function sanitizeFileNameChunk(value) {
+  return String(value || 'reunion')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9-_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
 }
 
 export default function AdminMeetHub() {
@@ -72,6 +83,75 @@ export default function AdminMeetHub() {
       return tb - ta
     })
   }, [meetings])
+
+  const downloadMeetingPdf = (item) => {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+    const marginX = 48
+    const pageH = doc.internal.pageSize.getHeight()
+    const maxWidth = doc.internal.pageSize.getWidth() - marginX * 2
+    let y = 56
+
+    const ensureSpace = (needed = 24) => {
+      if (y + needed > pageH - 48) {
+        doc.addPage()
+        y = 56
+      }
+    }
+
+    const writeSection = (label, content) => {
+      ensureSpace(40)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.setTextColor(90, 103, 123)
+      doc.text(label.toUpperCase(), marginX, y)
+      y += 16
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(11)
+      doc.setTextColor(34, 44, 62)
+      const lines = doc.splitTextToSize(content, maxWidth)
+      const height = lines.length * 14 + 8
+      ensureSpace(height)
+      doc.text(lines, marginX, y)
+      y += height
+    }
+
+    const participantName = item.participantName || 'Réunion'
+    const report = item.reportPreview || {}
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(18)
+    doc.setTextColor(15, 23, 42)
+    doc.text('Rapport de réunion intégrée', marginX, y)
+    y += 24
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(11)
+    doc.setTextColor(71, 85, 105)
+    doc.text(`Participant: ${participantName}`, marginX, y)
+    y += 16
+    doc.text(`Type: ${meetingTypeLabel(item.type)}`, marginX, y)
+    y += 16
+    doc.text(`Date: ${formatWhen(item.scheduledAt)}`, marginX, y)
+    y += 22
+
+    writeSection(
+      'Avis sur le participant',
+      report.participantOpinion || 'Sans transcription, il est difficile de formuler un avis précis.',
+    )
+    writeSection(
+      'Recommandation RH',
+      report.recommendation || 'Planifier une nouvelle réunion pour obtenir plus de détails.',
+    )
+    writeSection(
+      'Ce qui a été discuté',
+      report.conversationSummary || 'Résumé non disponible pour cette réunion.',
+    )
+
+    const dateChunk = (item.scheduledAt || '').slice(0, 10) || new Date().toISOString().slice(0, 10)
+    const fileName = `rapport-reunion-${sanitizeFileNameChunk(participantName)}-${dateChunk}.pdf`
+    doc.save(fileName)
+  }
 
   return (
     <div style={{ padding: '24px 26px 36px', maxWidth: '1300px' }}>
@@ -136,6 +216,22 @@ export default function AdminMeetHub() {
                     <span style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 999, ...badge }}>
                       {badge.label}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => downloadMeetingPdf(item)}
+                      style={{
+                        border: '1px solid rgba(148,163,184,0.35)',
+                        borderRadius: 999,
+                        background: 'rgba(30,41,59,0.45)',
+                        color: '#dbeafe',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        padding: '7px 14px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Télécharger PDF
+                    </button>
                     <button
                       type="button"
                       onClick={() => setOpened((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
