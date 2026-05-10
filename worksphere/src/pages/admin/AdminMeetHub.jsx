@@ -212,42 +212,44 @@ export default function AdminMeetHub() {
                       {meetingTypeLabel(item.type)} · {formatWhen(item.scheduledAt)}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
                     <span style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 999, ...badge }}>
                       {badge.label}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => downloadMeetingPdf(item)}
-                      style={{
-                        border: '1px solid rgba(148,163,184,0.35)',
-                        borderRadius: 999,
-                        background: 'rgba(30,41,59,0.45)',
-                        color: '#dbeafe',
-                        fontWeight: 700,
-                        fontSize: 12,
-                        padding: '7px 14px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Télécharger PDF
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setOpened((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
-                      style={{
-                        border: 'none',
-                        borderRadius: 999,
-                        background: 'linear-gradient(90deg, #3b82f6, #22d3ee)',
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: 12,
-                        padding: '7px 14px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {expanded ? 'Masquer' : 'Voir détail'}
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => downloadMeetingPdf(item)}
+                        style={{
+                          border: '1px solid rgba(125,211,252,0.55)',
+                          borderRadius: 999,
+                          background: 'rgba(14,116,144,0.25)',
+                          color: '#bae6fd',
+                          fontWeight: 700,
+                          fontSize: 12,
+                          padding: '7px 14px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Télécharger PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOpened((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                        style={{
+                          border: 'none',
+                          borderRadius: 999,
+                          background: 'linear-gradient(90deg, #3b82f6, #22d3ee)',
+                          color: '#fff',
+                          fontWeight: 700,
+                          fontSize: 12,
+                          padding: '7px 14px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {expanded ? 'Masquer' : 'Voir détail'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
